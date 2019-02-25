@@ -29,7 +29,7 @@ OCCUPIED = 2
 ROBOT_RADIUS = 0.105 / 2.
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
 START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 1500
 SAMPLING = 'uniform'
 
 
@@ -71,19 +71,33 @@ def sample_random_position(occupancy_grid):
     return position
 
 
-def find_path(node, parent):
-    theta = math.atan2(node.pose[Y] - parent.pose[Y], node.pose[X] - parent.pose[X])
-    newNode = Node(node.pose)
-    d = np.linalg.norm(node.position - parent.position)
+def calculate_cost(parent, position, occupancy_grid):
+    # if parent.cost == 0:
+    #   parent.cost = get_path_length(get_path(parent))
 
-    newNode.cost = parent.cost + d
-    newNode.pose[YAW] = theta
-    newNode.parent = parent
+    d = np.linalg.norm(position - parent.position)
+    theta = math.atan2(position[Y] - parent.pose[Y], position[X] - parent.pose[X])
+    
+    t1 = parent.pose[YAW] % (2*np.pi)
+    t2 = theta % (2*np.pi)
+    if t2 < t1:
+        t2 += 2. * np.pi
+    angle_diff = t2 - t1 
+    if angle_diff > np.pi:
+        angle_diff = 2* np.pi - angle_diff
 
-    return newNode
+    #print(angle_diff, t1, t2)
+    
+    cost = parent.cost + d
+    if angle_diff > (np.pi / 8):
+        cost += 0.5 * (angle_diff)**2 / d
 
+    if check_collisions(parent, position, occupancy_grid):
+        return float("inf")
+    else:
+      return cost
 
-def adjust_pose(node, final_position, occupancy_grid):
+def find_path(node, final_position, occupancy_grid):
     # Check whether there exists a simple path that links node.pose
     # to final_position.
     final_pose = node.pose.copy()
@@ -91,15 +105,12 @@ def adjust_pose(node, final_position, occupancy_grid):
     final_node = Node(final_pose)
 
     theta = math.atan2(final_position[Y] - node.pose[Y], final_position[X] - node.pose[X])
-    d = np.linalg.norm(final_position - node.position)
 
     final_node.pose[YAW] = theta
-    final_node.cost = node.cost + d
+    final_node.cost = calculate_cost(node, final_position, occupancy_grid)
+    final_node.parent = node
 
-    if check_collisions(node, final_position, occupancy_grid):
-        return None
-    else:
-        return final_node
+    return final_node
 
 
 def check_collisions(node, final_position, occupancy_grid):
@@ -244,18 +255,6 @@ class Node(object):
         self._cost = c
 
 
-def calculate_cost(parent, position, occupancy_grid):
-    # if parent.cost == 0:
-    #   parent.cost = get_path_length(get_path(parent))
-
-    d = np.linalg.norm(position - parent.position)
-
-    if check_collisions(parent, position, occupancy_grid):
-        return float("inf")
-    else:
-      return parent.cost + d
-
-
 def find_near_nodes(graph, newNode):
     nnode = len(graph)
     r = 4.0 * math.sqrt((math.log(nnode) / nnode))
@@ -268,11 +267,10 @@ def find_near_nodes(graph, newNode):
 def rewire(newNode, nearinds, graph, occupancy_grid):
     for i in nearinds:
         nearNode = graph[i]
-        tNode = find_path(nearNode, newNode)
+        tNode = find_path(newNode, nearNode.position, occupancy_grid)
         if nearNode.cost > tNode.cost:
-            if not check_collisions(nearNode, newNode.position, occupancy_grid):
-              nearNode.parent = tNode.parent
-              nearNode.cost = tNode.cost
+            nearNode.parent = tNode.parent
+            nearNode.cost = tNode.cost
 
 
 def rrt(start_pose, goal_position, occupancy_grid):
@@ -304,8 +302,8 @@ def rrt(start_pose, goal_position, occupancy_grid):
         else:
             u = None
             continue
-        v = adjust_pose(u, position, occupancy_grid)
-        if v is None:
+        v = find_path(u, position, occupancy_grid)
+        if v.cost ==  float("inf"):
             continue
         u.add_neighbor(v)
         v.parent = u
