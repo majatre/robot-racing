@@ -29,7 +29,7 @@ OCCUPIED = 2
 ROBOT_RADIUS = 0.105 / 2.
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
 START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-MAX_ITERATIONS = 1500
+MAX_ITERATIONS = 500
 SAMPLING = 'uniform'
 
 
@@ -126,6 +126,22 @@ def check_collisions(node, final_position, occupancy_grid):
     if occupancy_grid.is_occupied(np.array([x, y])):
         return True
   return False
+
+
+def get_points_on_path_segment(node_a, node_b):
+  d = np.linalg.norm(node_b.position - node_a.position)
+  res = 0.05
+  x = node_a.pose[X]
+  y = node_a.pose[Y]
+  path = []
+
+  theta = math.atan2(node_b.position[Y] - node_a.position[Y], node_b.position[X] - node_a.position[X])
+  for i in range(int(d / res)):
+    x += res * math.cos(theta)
+    y += res * math.sin(theta)
+    path.append(np.array([x,y]))
+    
+  return path
 
 
 def get_path(final_node):
@@ -317,7 +333,6 @@ def rrt(start_pose, goal_position, occupancy_grid):
     print('Done')
     return start_node, final_node
 
-
 def find_circle(node_a, node_b):
     def perpendicular(v):
         w = np.empty_like(v)
@@ -505,6 +520,17 @@ def plan_cubic_splines(x, y):
     #plt.show()
     return x,y,rx,ry
 
+
+def run_path_planning(start_pose, goal_pose, occ_grid):
+    start_node, final_node = rrt(start_pose, goal_pose, occ_grid)
+    path = get_path(final_node)
+    path_points = []
+    for u, v in zip(path, path[1:]):
+        path_points.extend(get_points_on_path_segment(u,v))
+
+    return path_points
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
     parser.add_argument('--map', action='store', default='map', help='Which map to use.')
@@ -543,15 +569,17 @@ if __name__ == '__main__':
     # Run RRT.
     start_node, final_node = rrt(START_POSE, GOAL_POSITION, occupancy_grid)
     path = get_path(final_node)
-    print(get_path_length(path))
 
-    splines_x = [n.position[X] for n in path]
-    splines_y = [n.position[Y] for n in path]
 
-    print(splines_x)
-    print(splines_y)
+    # print(get_path_length(path))
 
-    x,y,rx,ry = plan_cubic_splines(splines_x, splines_y)
+    # splines_x = [n.position[X] for n in path]
+    # splines_y = [n.position[Y] for n in path]
+
+    # print(splines_x)
+    # print(splines_y)
+
+    # x,y,rx,ry = plan_cubic_splines(splines_x, splines_y)
 
 
     # timing = []
