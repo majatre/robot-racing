@@ -74,8 +74,8 @@ def get_curvature(a,b,c):
   return 4*A / (l1*l2*l3)
 
 def get_velocity(position, path_points):
-  max_acc = 3
-  max_velocity = 1
+  max_acc = 0.75
+  max_velocity = 0.75
   v = np.zeros_like(position)
   if len(path_points) == 0:
     return v
@@ -92,24 +92,39 @@ def get_velocity(position, path_points):
       min_dist = dist
       min_point = i
 
-  print('Min point', position, path_points[min_point])
-
   # Move in the direction of the next point
   if len(path_points) <= min_point + 3:
     direction = path_points[-1]
     v = direction - position
   else:
-    direction = path_points[min_point+3]
-    curvature = get_curvature(path_points[min_point+1],path_points[min_point+2],path_points[min_point+3])
-    print('Curva', curvature)
-    v = 0.5 * (direction - position) / np.linalg.norm(direction - position)
-    if curvature > 0.1:
-      v *= np.sqrt(max_acc / curvature)
+    if min_point < 2:
+      a_points = path_points[min_point : min_point+11]
+      b_points = path_points[min_point+1 : min_point+12]
+      c_points = path_points[min_point+2 : min_point+13]
+    else:  
+      a_points = path_points[min_point-2 : min_point+11]
+      b_points = path_points[min_point-1 : min_point+12]
+      c_points = path_points[min_point : min_point+13]
+    curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
+    curvature = max(
+      sum(curvatures) / len(curvatures), 
+      sum(curvatures[:5]) / len(curvatures[:5]), 
+      sum(curvatures[:3]) / len(curvatures[:3])
+      )
+
+    factor = max_velocity
+   
+    if curvature > max_acc:
+      print('Curva', curvature)
+      factor *= np.sqrt(max_acc / curvature)
+
+    direction = path_points[min_point+4]
+    v = factor * (direction - position) / np.linalg.norm(direction - position)
+    print(v, np.linalg.norm(v))
+
 
   if np.linalg.norm(v) > max_velocity:
     v *= max_velocity / np.linalg.norm(v)
-  print(v)
-
   # Scale the velocity to have a magnitude of 0.2.
   return  v
 
@@ -213,6 +228,7 @@ def run(args, occ_grid):
 
   # Update control every 100 ms.
   rate_limiter = rospy.Rate(100)
+  #publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
   publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
   path_publisher = rospy.Publisher('/path', Path, queue_size=1)
   groundtruth = GroundtruthPose()
@@ -248,6 +264,7 @@ def run(args, occ_grid):
     goal_reached = np.linalg.norm(groundtruth.pose[:2] - goal.position) < .4
     if goal_reached:
       plot_trajectory.plot_race(occ_grid)
+      plot_trajectory.plot_velocity(occ_grid)
       publisher.publish(stop_msg)
       rate_limiter.sleep()
       continue
@@ -264,7 +281,7 @@ def run(args, occ_grid):
     publisher.publish(vel_msg)
 
     # Log groundtruth positions in /tmp/gazebo_exercise.txt
-    pose_history.append(np.concatenate([groundtruth.pose, position], axis=0))
+    pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(v)])
     if len(pose_history) % 10:
       with open('/tmp/gazebo_race_trajectory.txt', 'a') as fp:
         fp.write('\n'.join(','.join(str(v) for v in p) for p in pose_history) + '\n')
@@ -272,7 +289,7 @@ def run(args, occ_grid):
 
     # Update plan every 1s.
     time_since = current_time - previous_time
-    if current_path and time_since < 30.:
+    if current_path and time_since <60.:
       rate_limiter.sleep()
       continue
     previous_time = current_time
@@ -296,13 +313,13 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='/home/maja/catkin_ws/src/exercises/robot-racing/rrt/maps/circuit', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.
-  with open(args.map + '.yaml') as fp:
+  with open(directory + '/' + args.map + '.yaml') as fp:
       data = yaml.load(fp)
-  img = rrt.read_pgm(os.path.join(os.path.dirname(args.map), data['image']))
+  img = rrt.read_pgm(os.path.join(os.path.dirname(directory + '/' + args.map), data['image']))
   occupancy_grid = np.empty_like(img, dtype=np.int8)
   occupancy_grid[:] = rrt.UNKNOWN
   occupancy_grid[img < .1] = rrt.OCCUPIED
@@ -314,14 +331,14 @@ if __name__ == '__main__':
   occupancy_grid = occupancy_grid[:, ::-1]
 
   #Invisible wall
- #if args.map == 'maps/circuit':
-  occupancy_grid[170, 144:170] = rrt.OCCUPIED
-  GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
-  START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
+  if args.map == 'maps/circuit':
+    occupancy_grid[170, 144:170] = rrt.OCCUPIED
+    GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
+    START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
   if args.map == 'maps/square':
-      occupancy_grid[177, 160:180] = rrt.OCCUPIED
-      GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
-      START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+    occupancy_grid[177, 160:180] = rrt.OCCUPIED
+    GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
+    START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
   occupancy_grid = rrt.OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])
 
