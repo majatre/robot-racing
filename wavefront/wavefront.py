@@ -10,6 +10,8 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.signal
 import yaml
+import math
+import itertools
 
 # Constants used for indexing.
 X = 0
@@ -29,7 +31,7 @@ MAX_ITERATIONS = 500
 
 
 def compute_weights(occupancy_grid_values, goal_index):
-    weights = np.copy(occupancy_grid_values).astype(np.int64)
+    weights = np.copy(occupancy_grid_values).astype(np.float32)
     grid_shape_x, grid_shape_y = occupancy_grid_values.shape
 
     neighbours = [[] for _ in range(grid_shape_x * grid_shape_y)]
@@ -37,6 +39,7 @@ def compute_weights(occupancy_grid_values, goal_index):
 
     visited = np.zeros(occupancy_grid_values.shape)
     visited[goal_index[0], goal_index[1]] = 1
+    weights[goal_index[0], goal_index[1]] = OCCUPIED + 1
 
     i = np.int64(0)
     condition = True
@@ -45,14 +48,14 @@ def compute_weights(occupancy_grid_values, goal_index):
         neighbours[i + 1] = []
         for n in neighbours[i]:
             x, y = n
-            weights[x][y] = i + OCCUPIED + 1
-            for a in [x - 1, x, x + 1]:
-                for b in [y - 1, y, y + 1]:
-                    if 0 <= a < grid_shape_x and 0 <= b < grid_shape_y:
-                        if occupancy_grid_values[a][b] == 0 and visited[a][
-                            b] == 0:
-                            visited[a][b] = 1
-                            neighbours[i + 1].append([a, b])
+            for a, b in itertools.product([x - 1, x, x + 1], [y - 1, y, y + 1]):
+                if 0 <= a < grid_shape_x and 0 <= b < grid_shape_y:
+                    if occupancy_grid_values[a][b] == 0 and visited[a][b] == 0:
+                        visited[a][b] = 1
+                        weights[a][b] = weights[x][y] + 1
+                        neighbours[i + 1].append([a, b])
+                        if np.abs(a - x) == np.abs(b - y) == 1:
+                            weights[a][b] = weights[x][y] + 1.5
         if len(neighbours[i + 1]) == 0:
             condition = False
         else:
@@ -61,44 +64,47 @@ def compute_weights(occupancy_grid_values, goal_index):
     return weights
 
 
-def compute_path_second(occupancy_grid_values, start_index, goal_index):
+def compute_path(occupancy_grid_values, start_index, goal_index):
     weights = compute_weights(occupancy_grid_values, goal_index)
     visited = np.zeros(occupancy_grid_values.shape)
     path = []
 
-    current_node = start_index
+    current_node = list(start_index)
     visited[current_node[0]][current_node[1]] = 1
     path.append(current_node)
-    while current_node != goal_index:
+    while current_node != list(goal_index):
         min_d = np.iinfo(np.int32).max
         min_neigh = current_node
         x, y = current_node
-        for a in [x - 1, x, x + 1]:
-            for b in [y - 1, y, y + 1]:
-                # print("got here")
-                # print(a, b, weights[a][b], visited[a][b])
+        for a, b in itertools.product([x - 1, x, x + 1], [y - 1, y, y + 1]):
+            if 0 <= a < len(weights) and 0 <= b < len(weights[0]) and \
+                    weights[a][b] > OCCUPIED:
+                visited[a][b] = 1
 
-                if 0 <= a < len(weights) and 0 <= b < len(weights[0]) and \
-                        weights[a][b] > OCCUPIED:
-                    # print(a, b, weights[a, b], visited[a, b])
-                    visited[a][b] = 1
+                if weights[a][b] <= min_d:
+                    min_d = weights[a][b]
+                    min_neigh = [a, b]
 
-                    if weights[a][b] <= min_d:
-                        min_d = weights[a][b]
-                        min_neigh = [a, b]
         if current_node == min_neigh:
             break
         current_node = min_neigh
         path.append(current_node)
         # print(current_node)
 
-    return path[0::5]
+    return path[0::3]
 
 
 # og = np.array([[0, 0, 1, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0]])
 # print(og)
 # print(compute_weights(og, [6, 3]))
-# print(compute_path_second(og, [0, 0], [6, 3]))
+# print(compute_path(og, [0, 0], [6, 3]))
+
+
+def run_path_planning(occ_grid, start_pose, goal_pose):
+    path = compute_path(occ_grid.values, occ_grid.get_index(start_pose), occ_grid.get_index(goal_pose))
+    path = [occ_grid.get_position(x, y) for x, y in path]
+
+    return path
 
 
 # Defines an occupancy grid.
@@ -109,7 +115,8 @@ class OccupancyGrid(object):
         # Inflate obstacles (using a convolution).
         inflated_grid = np.zeros_like(values)
         inflated_grid[values == OCCUPIED] = 1.
-        w = 2 * int(ROBOT_RADIUS / resolution) + 1
+        # change to 6* when using square map.
+        w = 12 * int(ROBOT_RADIUS / resolution) + 1
         inflated_grid = scipy.signal.convolve2d(inflated_grid, np.ones((w, w)),
                                                 mode='same')
         self._values[inflated_grid > 0.] = OCCUPIED
@@ -220,9 +227,9 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
     occupancy_grid.draw()
 
-    p = compute_path_second(occupancy_grid.values,
-                            occupancy_grid.get_index(START_POSE[:2]),
-                            occupancy_grid.get_index(GOAL_POSITION))
+    p = compute_path(occupancy_grid.values,
+                     occupancy_grid.get_index(START_POSE[:2]),
+                     occupancy_grid.get_index(GOAL_POSITION))
     for x, y in p:
         n = occupancy_grid.get_position(x, y)
         plt.scatter(n[0], n[1], color='red')
