@@ -46,6 +46,81 @@ X = 0
 Y = 1
 YAW = 2
 
+prev_cte = 0
+error_sum = 0
+tau_p = 1
+tau_d = 10
+tau_i = 0 #0.01
+k = 5  # control gain
+
+
+def PID(pose, path, velocity):
+  global prev_cte, error_sum, tau_p, tau_d, tau_i
+  cte, angle_diff = calculate_error(pose, path)
+  cte_change = cte - prev_cte
+  prev_cte = cte
+  
+  dx_p = velocity[0]
+  dy_p = velocity[1]
+  theta = pose[YAW] 
+
+  print('Errors', cte, cte_change)
+
+  error_sum += cte
+  #w = 1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
+  w = tau_p*cte + tau_d*cte_change + tau_i*error_sum
+  u = np.linalg.norm(velocity)
+  return u, w
+
+
+def stanley_steering(pose, path, velocity):
+  cte, angle_diff = calculate_error(pose, path)
+  
+  # theta_e corrects the heading error
+  theta_e = angle_diff
+  # theta_d corrects the cross track error
+  theta_d = np.arctan2(k * cte, np.linalg.norm(velocity))
+  # Steering control
+  delta = theta_e + theta_d
+
+  print('Errors', theta_e, theta_d)
+
+  u = np.linalg.norm(velocity) 
+  w = delta / u #1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
+  # w = tau_p*cte + tau_d*cte_change + tau_i*error_sum
+  print(u, w)
+  return u, w
+
+
+def calculate_error(pose, path_points):
+  if len(path_points) == 0:
+    return 0, 0
+
+  p = np.array([pose[X], pose[Y]], dtype=np.float32)
+
+  # Find the currently closest point in the path
+  min_dist = np.linalg.norm(p - path_points[0])
+  min_point = 0
+  for i, point in enumerate(path_points):
+    dist = np.linalg.norm(p - point)
+    if dist < min_dist:
+      min_dist = dist
+      min_point = i
+
+  p1 = path_points[min_point]
+  p2 = path_points[min_point+1]
+  p3 = path_points[min_point+2]
+
+  dist = -np.cross(p2-p1,p-p1)/np.linalg.norm(p2-p1)
+  print('Distance', dist)
+  angle = np.arctan2((p3-p2)[1], (p3-p2)[0])
+  angle_diff = np.arctan2(np.sin(angle-pose[YAW]), np.cos(angle-pose[YAW]))
+  print('Angle diff', angle_diff)
+
+
+  return dist, angle_diff
+
+
 
 def feedback_linearized(pose, velocity, epsilon):
   # Implementation of feedback-linearization to follow the velocity
@@ -111,16 +186,15 @@ def get_velocity(position, path_points):
       sum(curvatures[:5]) / len(curvatures[:5]), 
       sum(curvatures[:3]) / len(curvatures[:3])
       )
-
+    direction = sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
     if curvature > max_acc:
-      print('Curva', curvature)
+      #print('Curva', curvature)
       factor *= np.sqrt(max_acc / curvature)
 
-    direction = path_points[min_point+4]
     v = factor * (direction - position) / np.linalg.norm(direction - position)
-    print(v, np.linalg.norm(v))
+    #print(v, np.linalg.norm(v))
 
 
   if np.linalg.norm(v) > max_velocity:
@@ -274,7 +348,8 @@ def run(args, occ_grid):
         groundtruth.pose[X] + EPSILON * np.cos(groundtruth.pose[YAW]),
         groundtruth.pose[Y] + EPSILON * np.sin(groundtruth.pose[YAW])], dtype=np.float32)
     v = get_velocity(position, np.array(current_path, dtype=np.float32))
-    u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
+    u, w = stanley_steering(groundtruth.pose, np.array(current_path, dtype=np.float32), v)
+    #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
     vel_msg = Twist()
     vel_msg.linear.x = u
     vel_msg.angular.z = w
@@ -301,6 +376,12 @@ def run(args, occ_grid):
     if not current_path:
       print('Unable to reach goal position:', goal.position)
 
+    prev_cte = 0
+    error_sum = 0
+    tau_p = 1 
+    tau_d = 0 
+    tau_i = 0
+
      # Log groundtruth positions in /tmp/gazebo_exercise.txt
     with open('/tmp/gazebo_race_path.txt', 'a') as fp:
       fp.write('\n'.join(','.join(str(v) for v in p) for p in current_path) + '\n')
@@ -313,7 +394,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/square', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.
@@ -336,7 +417,7 @@ if __name__ == '__main__':
     GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
   if args.map == 'maps/square':
-    occupancy_grid[177, 160:180] = rrt.OCCUPIED
+    occupancy_grid[176, 160:180] = rrt.OCCUPIED
     GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 

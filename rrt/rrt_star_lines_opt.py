@@ -556,7 +556,7 @@ if __name__ == '__main__':
         GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
     elif args.map == 'maps/square':
-        occupancy_grid[177, 160:180] = OCCUPIED
+        occupancy_grid[175, 160:180] = OCCUPIED
         GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
@@ -573,8 +573,8 @@ if __name__ == '__main__':
 
     # print(get_path_length(path))
 
-    # splines_x = [n.position[X] for n in path]
-    # splines_y = [n.position[Y] for n in path]
+    splines_x = [n.position[X] for n in path]
+    splines_y = [n.position[Y] for n in path]
 
     # print(splines_x)
     # print(splines_y)
@@ -608,8 +608,8 @@ if __name__ == '__main__':
     plt.scatter(START_POSE[0], START_POSE[1], s=10, marker='o', color='green', zorder=1000)
     plt.scatter(GOAL_POSITION[0], GOAL_POSITION[1], s=10, marker='o', color='red', zorder=1000)
 
-    plt.plot(x, y, "xb", label="input")
-    plt.plot(rx, ry, "-r", label="spline")
+    plt.plot(splines_x, splines_y, "xb", label="input")
+    #plt.plot(rx, ry, "-r", label="spline")
 
     # new_path = path_smoothing(path, 500, occupancy_grid)
     # # for node in new_path:
