@@ -210,6 +210,7 @@ class GroundtruthPose(object):
   def __init__(self, name='turtlebot3_burger'):
     rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
     self._pose = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
+    self._velocity = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
     self._name = name
 
   def callback(self, msg):
@@ -225,6 +226,10 @@ class GroundtruthPose(object):
         msg.pose[idx].orientation.z,
         msg.pose[idx].orientation.w])
     self._pose[YAW] = yaw
+    self._velocity[0] = msg.twist[idx].linear.x
+    self._velocity[1] = msg.twist[idx].linear.y
+    self._velocity[2] = msg.twist[idx].linear.z
+   # print(msg.twist[idx])
 
   @property
   def ready(self):
@@ -233,6 +238,10 @@ class GroundtruthPose(object):
   @property
   def pose(self):
     return self._pose
+
+  @property
+  def velocity(self):
+    return self._velocity
 
 
 class GoalPose(object):
@@ -358,8 +367,10 @@ def run(args, occ_grid):
     vel_msg.angular.z = w
     publisher.publish(vel_msg)
 
+
+    print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
     # Log groundtruth positions in /tmp/gazebo_exercise.txt
-    pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(v)])
+    pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
     if len(pose_history) % 10:
       with open('/tmp/gazebo_race_trajectory.txt', 'a') as fp:
         fp.write('\n'.join(','.join(str(v) for v in p) for p in pose_history) + '\n')

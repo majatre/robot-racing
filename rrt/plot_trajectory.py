@@ -29,7 +29,7 @@ def plot_velocity(occ_grid):
   norm = plt.Normalize(velocities.min(), velocities.max())
   points = np.array([data_trajectory[:, 0], data_trajectory[:, 1]]).T.reshape(-1, 1, 2)
   segments = np.concatenate([points[:-1], points[1:]], axis=1)
-  lc = LineCollection(segments, cmap='viridis', norm=norm)
+  lc = LineCollection(segments, cmap='Greens', norm=norm)
   # Set the values used for colormapping
   lc.set_array(velocities)
   lc.set_linewidth(2)
