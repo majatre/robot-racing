@@ -46,30 +46,29 @@ X = 0
 Y = 1
 YAW = 2
 
-prev_cte = 0
+prev_error = 0
 error_sum = 0
-tau_p = 1
-tau_d = 10
+tau_p = 2
+tau_d = 20 # 20
 tau_i = 0 #0.01
-k = 5  # control gain
+k = 1  # control gain
 
 
 def PID(pose, path, velocity):
-  global prev_cte, error_sum, tau_p, tau_d, tau_i
+  global prev_error, error_sum, tau_p, tau_d, tau_i
   cte, angle_diff = calculate_error(pose, path)
-  cte_change = cte - prev_cte
-  prev_cte = cte
+  error = angle_diff + np.arctan2(k * cte, np.linalg.norm(velocity)) 
+  error_change = error - prev_error
+  prev_error = error
   
-  dx_p = velocity[0]
-  dy_p = velocity[1]
-  theta = pose[YAW] 
+  print('Errors', cte, error_change)
 
-  print('Errors', cte, cte_change)
-
-  error_sum += cte
+  error_sum += error
+  u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error)))
+  #u = 1.3 * np.linalg.norm(velocity) * max(0.3, (1 - abs(error)))
   #w = 1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
-  w = tau_p*cte + tau_d*cte_change + tau_i*error_sum
-  u = np.linalg.norm(velocity)
+  w = tau_p*error + tau_d*error_change + tau_i*error_sum
+ 
   return u, w
 
 
@@ -85,8 +84,12 @@ def stanley_steering(pose, path, velocity):
 
   print('Errors', theta_e, theta_d)
 
+  dx_p = np.cos(delta)
+  dy_p = np.sin(delta)
+  theta = pose[YAW] 
+
   u = np.linalg.norm(velocity) 
-  w = delta / u #1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
+  w = 2 * delta * u #1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
   # w = tau_p*cte + tau_d*cte_change + tau_i*error_sum
   print(u, w)
   return u, w
@@ -150,7 +153,7 @@ def get_curvature(a,b,c):
 
 def get_velocity(position, path_points):
   max_acc = 0.75
-  max_velocity = 0.75
+  max_velocity = 1
   v = np.zeros_like(position)
   if len(path_points) == 0:
     return v
@@ -348,7 +351,7 @@ def run(args, occ_grid):
         groundtruth.pose[X] + EPSILON * np.cos(groundtruth.pose[YAW]),
         groundtruth.pose[Y] + EPSILON * np.sin(groundtruth.pose[YAW])], dtype=np.float32)
     v = get_velocity(position, np.array(current_path, dtype=np.float32))
-    u, w = stanley_steering(groundtruth.pose, np.array(current_path, dtype=np.float32), v)
+    u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32), v)
     #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
     vel_msg = Twist()
     vel_msg.linear.x = u
@@ -394,7 +397,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/square', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.
