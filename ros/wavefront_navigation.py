@@ -279,14 +279,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='/home/roxana/catkin_ws/src/exercises/exercises/robot-racing/rrt/maps/circuit',
+                        default='maps/circuit',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 
     # Load map.
-    with open(args.map + '.yaml') as fp:
+    with open(directory_rrt + '/' + args.map + '.yaml') as fp:
         data = yaml.load(fp)
-    img = wavefront.read_pgm(os.path.join(os.path.dirname(args.map), data['image']))
+    img = wavefront.read_pgm(os.path.join(os.path.dirname(directory_rrt + '/' + args.map), data['image']))
     occupancy_grid = np.empty_like(img, dtype=np.int8)
     occupancy_grid[:] = wavefront.UNKNOWN
     occupancy_grid[img < .1] = wavefront.OCCUPIED
