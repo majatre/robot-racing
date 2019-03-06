@@ -32,7 +32,7 @@
         <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>6 0.15 1</size>
+            <size>3 0.15 1</size>
           </box>
         </geometry>
         <surface>
@@ -104,7 +104,7 @@
         <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>6 0.15 1</size>
+            <size>4.15 0.15 1</size>
           </box>
         </geometry>
         <surface>
@@ -171,12 +171,13 @@
         <transparency>0</transparency>
       </visual>
       <collision name='Wall_13_Collision'>
+        <self_collide>0</self_collide>
         <laser_retro>0</laser_retro>
         <max_contacts>10</max_contacts>
         <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>1.5 0.15 1</size>
+            <size>2.7 0.5 1</size>
           </box>
         </geometry>
         <surface>
@@ -248,7 +249,7 @@
         <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>6 0.15 1</size>
+            <size>3 0.15 1</size>
           </box>
         </geometry>
         <surface>
@@ -320,7 +321,7 @@
         <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>6 0.15 1</size>
+            <size>4.15 0.15 1</size>
           </box>
         </geometry>
         <surface>
