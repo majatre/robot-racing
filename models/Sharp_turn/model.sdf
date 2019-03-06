@@ -150,10 +150,10 @@
       <self_collide>0</self_collide>
       <kinematic>0</kinematic>
       <visual name='Wall_13_Visual'>
-        <pose frame=''>-0.15 0 0.5 0 -0 0</pose>
+        <pose frame=''>0 0 0.5 0 -0 0</pose>
         <geometry>
           <box>
-            <size>2.7 0.5 1</size>
+            <size>3 0.2 1</size>
           </box>
         </geometry>
         <material>
