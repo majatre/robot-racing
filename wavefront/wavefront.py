@@ -55,7 +55,7 @@ def compute_weights(occupancy_grid_values, goal_index):
                         weights[a][b] = weights[x][y] + 1
                         neighbours[i + 1].append([a, b])
                         if np.abs(a - x) == np.abs(b - y) == 1:
-                            weights[a][b] = weights[x][y] + 1.5
+                            weights[a][b] = weights[x][y] + np.sqrt(2)
         if len(neighbours[i + 1]) == 0:
             condition = False
         else:
@@ -89,22 +89,48 @@ def compute_path(occupancy_grid_values, start_index, goal_index):
             break
         current_node = min_neigh
         path.append(current_node)
-        # print(current_node)
 
     return path[0::3]
 
 
-# og = np.array([[0, 0, 1, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0], [0, 1, 0, 0], [0, 1, 0, 0]])
-# print(og)
-# print(compute_weights(og, [6, 3]))
-# print(compute_path(og, [0, 0], [6, 3]))
-
-
 def run_path_planning(occ_grid, start_pose, goal_pose):
-    path = compute_path(occ_grid.values, occ_grid.get_index(start_pose), occ_grid.get_index(goal_pose))
+    path = compute_path(occ_grid.values, occ_grid.get_index(start_pose),
+                        occ_grid.get_index(goal_pose))
     path = [occ_grid.get_position(x, y) for x, y in path]
 
     return path
+
+
+def get_area(a, b, c):
+    return 1 / 2 * abs(
+        (b[X] - a[X]) * (c[Y] - a[Y]) - (b[Y] - a[Y]) * (c[X] - a[X]))
+
+
+def get_curvature(a, b, c):
+    A = get_area(a, b, c)
+    l1 = np.linalg.norm(b - a)
+    l2 = np.linalg.norm(c - a)
+    l3 = np.linalg.norm(c - b)
+    return 4 * A / (l1 * l2 * l3)
+
+
+def plot_path_curvature(path):
+    l = len(path)
+    print(l)
+    curvatures = []
+    line_length = []
+
+    fig, ax = plt.subplots()
+    for p1, p2, p3 in zip(path[:-2], path[1:-1], path[2:]):
+        curvatures.append(get_curvature(p1, p2, p3))
+        if len(line_length) == 0:
+            line_length.append(np.linalg.norm(p2 - p1) + np.linalg.norm(p3 - p2))
+        else:
+            ll = line_length[-1]
+            line_length.append(ll + np.linalg.norm(p3 - p2))
+    print(line_length)
+    plt.plot(line_length, curvatures)
+    plt.show()
 
 
 # Defines an occupancy grid.
@@ -192,7 +218,8 @@ def read_pgm(filename, byteorder='>'):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
+    parser = argparse.ArgumentParser(
+        description='Uses Wavefront to reach the goal.')
     parser.add_argument('--map', action='store', default='map',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
@@ -227,12 +254,9 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
     occupancy_grid.draw()
 
-    p = compute_path(occupancy_grid.values,
-                     occupancy_grid.get_index(START_POSE[:2]),
-                     occupancy_grid.get_index(GOAL_POSITION))
+    p = run_path_planning(occupancy_grid, START_POSE[:2], GOAL_POSITION)
     for x, y in p:
-        n = occupancy_grid.get_position(x, y)
-        plt.scatter(n[0], n[1], color='red')
+        plt.scatter(x, y, color='red')
 
     plt.axis('equal')
     plt.xlabel('x')
@@ -240,3 +264,5 @@ if __name__ == '__main__':
     plt.xlim([-.5 - 2., 2. + .5])
     plt.ylim([-.5 - 2., 2. + .5])
     plt.show()
+
+    plot_path_curvature(p)
