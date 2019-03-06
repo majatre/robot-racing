@@ -29,8 +29,34 @@ OCCUPIED = 2
 ROBOT_RADIUS = 0.105 / 2.
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
 START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 1000
 SAMPLING = 'uniform'
+
+import scipy.interpolate as si
+
+# parameter
+N = 3  # B Spline order
+
+
+def bspline_planning(x, y, sn):
+    t = range(len(x))
+    x_tup = si.splrep(t, x, k=N)
+    y_tup = si.splrep(t, y, k=N)
+
+    x_list = list(x_tup)
+    xl = x
+    x_list[1] = xl + [0.0, 0.0, 0.0, 0.0]
+
+    y_list = list(y_tup)
+    yl = y
+    y_list[1] = yl + [0.0, 0.0, 0.0, 0.0]
+
+    ipl_t = np.linspace(0.0, len(x) - 1, sn)
+    rx = si.splev(ipl_t, x_list)
+    ry = si.splev(ipl_t, y_list)
+
+    return rx, ry
+
 
 
 def sample_random_position(occupancy_grid):
@@ -80,17 +106,11 @@ def calculate_cost(parent, position, occupancy_grid):
     
     t1 = parent.pose[YAW] % (2*np.pi)
     t2 = theta % (2*np.pi)
-    if t2 < t1:
-        t2 += 2. * np.pi
-    angle_diff = t2 - t1 
-    if angle_diff > np.pi:
-        angle_diff = 2* np.pi - angle_diff
-
-    #print(angle_diff, t1, t2)
+    angle_diff = abs(np.arctan2(np.sin(t2-t1), np.cos(t2-t1)))
     
     cost = parent.cost + d
     if angle_diff > (np.pi / 8):
-        cost += 0.5 * (angle_diff)**2 / d
+        cost += 0.1 * (3*angle_diff)**2 / d
 
     if check_collisions(parent, position, occupancy_grid):
         return float("inf")
@@ -524,11 +544,14 @@ def plan_cubic_splines(x, y):
 def run_path_planning(start_pose, goal_pose, occ_grid):
     start_node, final_node = rrt(start_pose, goal_pose, occ_grid)
     path = get_path(final_node)
+    path_length = get_path_length(path)
     path_points = []
-    for u, v in zip(path, path[1:]):
-        path_points.extend(get_points_on_path_segment(u,v))
-
-    return path_points
+    # for u, v in zip(path, path[1:]):
+    #     path_points.extend(get_points_on_path_segment(u,v))
+    splines_x = [n.position[X] for n in path]
+    splines_y = [n.position[Y] for n in path]
+    rx, ry = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.04))
+    return zip(rx, ry)
 
 
 if __name__ == '__main__':
@@ -569,9 +592,7 @@ if __name__ == '__main__':
     # Run RRT.
     start_node, final_node = rrt(START_POSE, GOAL_POSITION, occupancy_grid)
     path = get_path(final_node)
-
-
-    # print(get_path_length(path))
+    path_length = get_path_length(path)
 
     splines_x = [n.position[X] for n in path]
     splines_y = [n.position[Y] for n in path]
@@ -579,7 +600,9 @@ if __name__ == '__main__':
     # print(splines_x)
     # print(splines_y)
 
-    # x,y,rx,ry = plan_cubic_splines(splines_x, splines_y)
+    #x,y,rx,ry = plan_cubic_splines(splines_x, splines_y)
+
+    rx2, ry2 = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.03))
 
 
     # timing = []
@@ -608,8 +631,16 @@ if __name__ == '__main__':
     plt.scatter(START_POSE[0], START_POSE[1], s=10, marker='o', color='green', zorder=1000)
     plt.scatter(GOAL_POSITION[0], GOAL_POSITION[1], s=10, marker='o', color='red', zorder=1000)
 
-    plt.plot(splines_x, splines_y, "xb", label="input")
+    #plt.plot(splines_x, splines_y, "xb", label="input")
     #plt.plot(rx, ry, "-r", label="spline")
+    plt.plot(rx2, ry2, "-g", label="spline")
+
+    print(rx2,ry2)
+
+    with open('/tmp/rrt_path_2.txt', 'w') as fp:
+      fp.write('\n'.join(','.join(str(v) for v in p) for p in zip(rx2,ry2)) + '\n')
+      pose_history = []
+
 
     # new_path = path_smoothing(path, 500, occupancy_grid)
     # # for node in new_path:

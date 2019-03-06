@@ -48,13 +48,13 @@ YAW = 2
 
 prev_error = 0
 error_sum = 0
-tau_p = 2
-tau_d = 20 # 20
+tau_p = 8
+tau_d = 160 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
 
 
-def PID(pose, path, velocity):
+def PID(pose, path, velocity, current_speed):
   global prev_error, error_sum, tau_p, tau_d, tau_i
   cte, angle_diff = calculate_error(pose, path)
   error = angle_diff + np.arctan2(k * cte, np.linalg.norm(velocity)) 
@@ -64,10 +64,10 @@ def PID(pose, path, velocity):
   print('Errors', cte, error_change)
 
   error_sum += error
-  u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error)))
-  #u = 1.3 * np.linalg.norm(velocity) * max(0.3, (1 - abs(error)))
+  #u = np.linalg.norm(velocity) #* max(0.3, (1 - abs(error)))
+  u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error/3))) 
   #w = 1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
-  w = tau_p*error + tau_d*error_change + tau_i*error_sum
+  w = (tau_p*error + tau_d*error_change + tau_i*error_sum) * min(1.5*current_speed, 1)
  
   return u, w
 
@@ -112,11 +112,12 @@ def calculate_error(pose, path_points):
 
   p1 = path_points[min_point]
   p2 = path_points[min_point+1]
-  p3 = path_points[min_point+2]
+  p3 = path_points[min_point+3]
+  p4 = sum(path_points[min_point+4:min_point+7]) / len(path_points[min_point+4:min_point+7])
 
   dist = -np.cross(p2-p1,p-p1)/np.linalg.norm(p2-p1)
   print('Distance', dist)
-  angle = np.arctan2((p3-p2)[1], (p3-p2)[0])
+  angle = np.arctan2((p4-p3)[1], (p4-p3)[0])
   angle_diff = np.arctan2(np.sin(angle-pose[YAW]), np.cos(angle-pose[YAW]))
   print('Angle diff', angle_diff)
 
@@ -152,8 +153,8 @@ def get_curvature(a,b,c):
   return 4*A / (l1*l2*l3)
 
 def get_velocity(position, path_points):
-  max_acc = 0.75
-  max_velocity = 1
+  max_acc = 0.45
+  max_velocity = 1.4
   v = np.zeros_like(position)
   if len(path_points) == 0:
     return v
@@ -175,24 +176,20 @@ def get_velocity(position, path_points):
     direction = path_points[-1]
     v = direction - position
   else:
-    if min_point < 2:
-      a_points = path_points[min_point : min_point+11]
-      b_points = path_points[min_point+1 : min_point+12]
-      c_points = path_points[min_point+2 : min_point+13]
-    else:  
-      a_points = path_points[min_point-2 : min_point+11]
-      b_points = path_points[min_point-1 : min_point+12]
-      c_points = path_points[min_point : min_point+13]
+    a_points = path_points[min_point : min_point+31]
+    b_points = path_points[min_point+1 : min_point+32]
+    c_points = path_points[min_point+2 : min_point+33]
     curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
-    curvature = max(
-      sum(curvatures) / len(curvatures), 
-      sum(curvatures[:5]) / len(curvatures[:5]), 
-      sum(curvatures[:3]) / len(curvatures[:3])
-      )
+    curvature = sum(
+      [sum(curvatures) / len(curvatures), 
+      sum(curvatures[:20]) / len(curvatures[:20]), 
+      sum(curvatures[:10]) / len(curvatures[:10]), 
+      sum(curvatures[:5]) / len(curvatures[:5])]
+      ) / 4
     direction = sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
-    if curvature > max_acc:
+    if curvature > .65:
       #print('Curva', curvature)
       factor *= np.sqrt(max_acc / curvature)
 
@@ -306,6 +303,7 @@ def get_path(final_node):
   
 
 def run(args, occ_grid):
+  sart_time = 0
   rospy.init_node('rrt_navigation')
   with open('/tmp/gazebo_race_path.txt', 'w'):
    pass
@@ -349,8 +347,10 @@ def run(args, occ_grid):
 
     goal_reached = np.linalg.norm(groundtruth.pose[:2] - goal.position) < .4
     if goal_reached:
-      plot_trajectory.plot_race(occ_grid)
-      plot_trajectory.plot_velocity(occ_grid)
+      finish_time = rospy.Time.now().to_sec()
+      print(finish_time - start_time)
+      #plot_trajectory.plot_race(occ_grid)
+      #plot_trajectory.plot_velocity(occ_grid)
       publisher.publish(stop_msg)
       rate_limiter.sleep()
       continue
@@ -360,7 +360,7 @@ def run(args, occ_grid):
         groundtruth.pose[X] + EPSILON * np.cos(groundtruth.pose[YAW]),
         groundtruth.pose[Y] + EPSILON * np.sin(groundtruth.pose[YAW])], dtype=np.float32)
     v = get_velocity(position, np.array(current_path, dtype=np.float32))
-    u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32), v)
+    u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32), v, np.linalg.norm(groundtruth.velocity))
     #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
     vel_msg = Twist()
     vel_msg.linear.x = u
@@ -385,10 +385,15 @@ def run(args, occ_grid):
 
     # Run RRT.
     print(groundtruth.pose, goal.position)
-    current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
+    #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
+    xy_path = np.genfromtxt('/tmp/rrt_path_2.txt', delimiter=',')
+    current_path = [(xy[0],xy[1]) for xy in xy_path]
+
     print('Path', current_path)
     if not current_path:
       print('Unable to reach goal position:', goal.position)
+    else:
+      start_time = rospy.Time.now().to_sec()
 
     prev_cte = 0
     error_sum = 0
