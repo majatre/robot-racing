@@ -55,7 +55,7 @@ def compute_weights(occupancy_grid_values, goal_index):
                         weights[a][b] = weights[x][y] + 1
                         neighbours[i + 1].append([a, b])
                         if np.abs(a - x) == np.abs(b - y) == 1:
-                            weights[a][b] = weights[x][y] + np.sqrt(2)
+                            weights[a][b] = weights[x][y] + 1.5
         if len(neighbours[i + 1]) == 0:
             condition = False
         else:

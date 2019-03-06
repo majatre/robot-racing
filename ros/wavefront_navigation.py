@@ -111,11 +111,13 @@ def get_velocity(position, path_points):
             c_points = path_points[min_point: min_point + 13]
         curvatures = [get_curvature(a, b, c) for a, b, c in
                       zip(a_points, b_points, c_points)]
-        curvature = max(
-            sum(curvatures) / len(curvatures),
-            sum(curvatures[:5]) / len(curvatures[:5]),
-            # sum(curvatures[:3]) / len(curvatures[:3])
-        )
+        # curvature = max(
+        #     sum(curvatures) / len(curvatures),
+        #     sum(curvatures[:5]) / len(curvatures[:5]),
+        #     # sum(curvatures[:3]) / len(curvatures[:3])
+        # )
+
+        curvature = sum(curvatures) / len(curvatures)
 
         factor = max_velocity
 
@@ -298,7 +300,7 @@ if __name__ == '__main__':
     # Invisible wall
     # if args.map == 'maps/circuit':
     occupancy_grid[170, 144:170] = wavefront.OCCUPIED
-    GOAL_POSITION = np.array([-1., -2.5],
+    GOAL_POSITION = np.array([-1., -2.],
                              dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
     if 'square' in args.map:
