@@ -78,8 +78,8 @@ def get_curvature(a, b, c):
 
 
 def get_velocity(position, path_points):
-    max_acc = 1.
-    max_velocity = 1.
+    max_acc = 1.2
+    max_velocity = 1.2
     v = np.zeros_like(position)
     if len(path_points) == 0:
         return v
@@ -300,7 +300,7 @@ if __name__ == '__main__':
     # Invisible wall
     # if args.map == 'maps/circuit':
     occupancy_grid[170, 144:170] = wavefront.OCCUPIED
-    GOAL_POSITION = np.array([-1., -2.],
+    GOAL_POSITION = np.array([-1., -2.3],
                              dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
     if 'square' in args.map:
