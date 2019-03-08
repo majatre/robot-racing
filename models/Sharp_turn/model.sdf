@@ -171,7 +171,6 @@
         <transparency>0</transparency>
       </visual>
       <collision name='Wall_13_Collision'>
-        <self_collide>0</self_collide>
         <laser_retro>0</laser_retro>
         <max_contacts>10</max_contacts>
         <pose frame=''>0 0 0.5 0 -0 0</pose>
