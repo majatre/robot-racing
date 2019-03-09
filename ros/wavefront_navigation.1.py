@@ -94,7 +94,7 @@ def run(args, occ_grid):
         pass
 
     # Update control every 100 ms.
-    rate_limiter = rospy.Rate(100)
+    rate_limiter = rospy.Rate(50)
     publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     path_publisher = rospy.Publisher('/path', Path, queue_size=1)
     groundtruth = GroundtruthPose()
@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='maps/map_sharp_turn',
+                        default='maps/circuit',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 
@@ -217,7 +217,7 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
     elif 'map_sharp_turn' in args.map:
-        GOAL_POSITION = np.array([0.5, -1], dtype=np.float32)  # Any orientation is good.
+        GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
     elif 'smooth' in args.map:
         occupancy_grid[177, 160:180] = wavefront.OCCUPIED

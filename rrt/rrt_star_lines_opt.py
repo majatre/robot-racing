@@ -29,7 +29,7 @@ OCCUPIED = 2
 ROBOT_RADIUS = 0.105 / 2.
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
 START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 1000
 SAMPLING = 'uniform'
 
 import scipy.interpolate as si
@@ -56,8 +56,6 @@ def bspline_planning(x, y, sn):
     ry = si.splev(ipl_t, y_list)
 
     return rx, ry
-
-
 
 def sample_random_position(occupancy_grid):
     # Sample a valid random position using Gaussian distribution.
@@ -109,8 +107,7 @@ def calculate_cost(parent, position, occupancy_grid):
     angle_diff = abs(np.arctan2(np.sin(t2-t1), np.cos(t2-t1)))
     
     cost = parent.cost + d
-    if angle_diff > (np.pi / 8):
-        cost += 0.1 * (2*angle_diff)**2 / d
+    cost += 0.1 * (3*angle_diff)**2 / d
 
     if check_collisions(parent, position, occupancy_grid):
         return float("inf")
@@ -192,7 +189,7 @@ class OccupancyGrid(object):
         # Inflate obstacles (using a convolution).
         inflated_grid = np.zeros_like(values)
         inflated_grid[values == OCCUPIED] = 1.
-        w = 6 * int(ROBOT_RADIUS / resolution) + 1
+        w = 10 * int(ROBOT_RADIUS / resolution) + 1
         inflated_grid = scipy.signal.convolve2d(inflated_grid, np.ones((w, w)), mode='same')
         self._values[inflated_grid > 0.] = OCCUPIED
         self._origin = np.array(origin[:2], dtype=np.float32)
@@ -541,6 +538,45 @@ def plan_cubic_splines(x, y):
     return x,y,rx,ry
 
 
+
+def get_area(a, b, c):
+    return 1 / 2 * abs(
+        (b[X] - a[X]) * (c[Y] - a[Y]) - (b[Y] - a[Y]) * (c[X] - a[X]))
+
+
+def get_curvature(a, b, c):
+    A = get_area(a, b, c)
+    l1 = np.linalg.norm(b - a)
+    l2 = np.linalg.norm(c - a)
+    l3 = np.linalg.norm(c - b)
+    return 4 * A / (l1 * l2 * l3)
+
+
+def plot_path_curvature(path):
+    l = len(path)
+    print(l)
+    curvatures = []
+    line_length = []
+
+    print(path)
+    fig, ax = plt.subplots()
+    for p1, p2, p3 in zip(path[:-2], path[1:-1], path[2:]):
+        print(p1, p2, p3)
+        curvatures.append(get_curvature(p1, p2, p3))
+        if len(line_length) == 0:
+            line_length.append(np.linalg.norm(p2 - p1) + np.linalg.norm(p3 - p2))
+        else:
+            ll = line_length[-1]
+            line_length.append(ll + np.linalg.norm(p3 - p2))
+    print(line_length)
+
+    curvatures = [(c1+c2)/2 for c1, c2 in zip(curvatures, curvatures[1:])]
+    line_length = [(c1+c2)/2 for c1, c2 in zip(line_length, line_length[1:])]
+
+    plt.plot(line_length, curvatures)
+    plt.show()
+
+
 def run_path_planning(start_pose, goal_pose, occ_grid):
     start_node, final_node = rrt(start_pose, goal_pose, occ_grid)
     path = get_path(final_node)
@@ -550,8 +586,9 @@ def run_path_planning(start_pose, goal_pose, occ_grid):
     #     path_points.extend(get_points_on_path_segment(u,v))
     splines_x = [n.position[X] for n in path]
     splines_y = [n.position[Y] for n in path]
-    rx, ry = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.04))
+    rx, ry = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.06))
     return zip(rx, ry)
+
 
 
 if __name__ == '__main__':
@@ -585,6 +622,10 @@ if __name__ == '__main__':
     elif args.map == 'maps/map_sharp_turn':
         GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+    elif args.map == 'maps/smooth_turn':
+        occupancy_grid[175, 160:180] = OCCUPIED
+        GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
     occupancy_grid = OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])
 
@@ -605,8 +646,7 @@ if __name__ == '__main__':
 
     #x,y,rx,ry = plan_cubic_splines(splines_x, splines_y)
 
-    rx2, ry2 = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.03))
-
+    rx2, ry2 = bspline_planning(splines_x, splines_y, math.ceil(path_length / 0.06))
 
     # timing = []
     # path_lengths = []
@@ -627,7 +667,7 @@ if __name__ == '__main__':
     # print('Avg. time:', sum(timing)/len(timing))
 
     # Plot environment.
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
     occupancy_grid.draw()
     # plt.scatter(.3, .2, s=10, marker='o', color='green', zorder=1000)
     draw_solution(start_node, final_node)
@@ -643,6 +683,8 @@ if __name__ == '__main__':
     with open('/tmp/rrt_path_sharp.txt', 'w') as fp:
       fp.write('\n'.join(','.join(str(v) for v in p) for p in zip(rx2,ry2)) + '\n')
       pose_history = []
+
+    plot_path_curvature([np.array([x,y], dtype=np.float32) for x, y in zip(rx2, ry2)])
 
 
     # new_path = path_smoothing(path, 500, occupancy_grid)

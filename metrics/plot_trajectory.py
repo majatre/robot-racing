@@ -94,8 +94,8 @@ def acceleration_over_time(file_paths):
     plt.show()
 
 
-velocity_histogram(['gazebo_race_trajectory.txt','wavefront_gazebo_race_trajectory.txt'])
+velocity_histogram(['gazebo_race_trajectory.txt','map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])
 velocity_over_time(
-    ['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
+    ['gazebo_race_trajectory.txt', 'map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])
 acceleration_over_time(
-['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
+['gazebo_race_trajectory.txt', 'map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])

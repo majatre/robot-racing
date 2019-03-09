@@ -94,7 +94,7 @@ def run(args, occ_grid):
    pass
 
   # Update control every 100 ms.
-  rate_limiter = rospy.Rate(100)
+  rate_limiter = rospy.Rate(50)
   publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
   groundtruth = GroundtruthPose()
   frame_id = 0
@@ -154,7 +154,7 @@ def run(args, occ_grid):
     #print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
     # Log groundtruth positions in /tmp/gazebo_exercise.txt
     pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
-    if len(pose_history) % 10:
+    if len(pose_history) % 10 == 0:
       with open(directory + '/../metrics/gazebo_race_trajectory.txt', 'a') as fp:
         fp.write('\n'.join(','.join(str(v) for v in p) for p in pose_history) + '\n')
         pose_history = []
@@ -168,8 +168,11 @@ def run(args, occ_grid):
 
     # Run RRT.
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
-    xy_path = np.genfromtxt(directory + '/paths/rrt_path_sharp2.txt' , delimiter=',')
+    xy_path = np.genfromtxt(directory + '/paths/rrt_path_circuit3.txt' , delimiter=',')
     current_path = [(xy[0],xy[1]) for xy in xy_path]
+
+    for a,b in zip(current_path, current_path[1:]):
+      print(np.linalg.norm(np.array(b) - np.array(a)))
 
     print('Path', current_path)
     if not current_path:
@@ -189,7 +192,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/map_sharp_turn', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.

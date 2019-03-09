@@ -25,7 +25,7 @@ from tf.transformations import euler_from_quaternion
 
 from gazebo_msgs.msg import ModelStates
 
-MAX_SPEED = 1.6
+MAX_SPEED = 1.7
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
@@ -34,11 +34,11 @@ Y = 1
 YAW = 2
 
 prev_error = 0
-tau_p = 12
-tau_d = 220 # 20
+tau_p = 8
+tau_d = 160 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
-k_v = 1 #speed proportional gain 
+k_v = 1.5 #speed proportional gain 
 
 dt = 0.1
 
@@ -73,7 +73,7 @@ def calculate_error(pose, path_points):
       min_dist = dist
       min_point = i
 
-  lookahead = int(MAX_SPEED * 10) 
+  lookahead = int(MAX_SPEED * 3) 
   if len(path_points) <= min_point + lookahead:
     return 0, 0
 
@@ -100,7 +100,7 @@ def get_curvature(a,b,c):
   return 4*A / (l1*l2*l3)
 
 def get_velocity(position, path_points):
-  max_acc = MAX_SPEED / 2.5
+  max_acc = MAX_SPEED / 1.8
   max_velocity = MAX_SPEED
   v = np.zeros_like(position)
   if len(path_points) == 0:
@@ -123,7 +123,13 @@ def get_velocity(position, path_points):
     direction = path_points[-1]
     v = direction - position
   else:
-    lookahead = int(40 * max_velocity)
+    #path_points = [(p1 + p2 + p3 + p4 + p5)/5 for p1,p2,p3,p4,p5 in zip(path_points,path_points[1:],path_points[2:],path_points[3:],path_points[4:])]
+    # old_path_points = path_points[::3]
+    # path_ponts = []
+    # for p in old_path_points:
+    #     np.append(path_points, [p,p,p])
+
+    lookahead = int(30 * max_velocity)
     a_points = path_points[min_point : min_point+lookahead]
     b_points = path_points[min_point+1 : min_point+lookahead]
     c_points = path_points[min_point+2 : min_point+lookahead]
@@ -135,12 +141,12 @@ def get_velocity(position, path_points):
       ) / 3
 
     print(curvature)
+
     direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
-    if curvature > max_acc:
+    if curvature > 0.3:
       factor = np.sqrt(max_acc / curvature)
-      print(factor)
 
     v = factor * (direction - position) / np.linalg.norm(direction - position)
 

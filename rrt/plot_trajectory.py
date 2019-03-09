@@ -11,8 +11,8 @@ import os
 directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
 def plot_race(occ_grid):
-  data_path = np.genfromtxt(directory + '/metrics/gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt(directory + '/metrics/gazebo_race_trajectory.txt', delimiter=',')
+  data_path = np.genfromtxt(directory + '/metrics/circuit_wavefront_gazebo_race_path.txt', delimiter=',')
+  data_trajectory = np.genfromtxt(directory + '/metrics/circuit_wavefront_gazebo_race_trajectory.txt', delimiter=',')
 
   plt.figure()
   plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
@@ -39,7 +39,7 @@ def plot_velocity(occ_grid):
   line = axs.add_collection(lc)
   plt.colorbar(line, ax=axs)
   
-  plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
+  #plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
 
   occ_grid.draw()
 
