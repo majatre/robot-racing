@@ -45,26 +45,39 @@ TIME_INTERVAL = 0.1
 def velocity_histogram(file_paths):
     plt.style.use('ggplot')
     data = []
+    labels = []
     for fp in file_paths:
         data_path = np.genfromtxt(fp, delimiter=',')
         velocities = [x[2] for x in data_path]
         data.append(velocities)
+        labels.append(fp)
     plt.hist(data, 25)
+    plt.xlabel('Velocity Buckets')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of velocity frequencies')
+    plt.legend(labels)
     plt.show()
 
 
 def velocity_over_time(file_paths):
     plt.style.use('ggplot')
+    labels = []
     for fp in file_paths:
         data_path = np.genfromtxt(fp, delimiter=',')
         velocities = [x[2] for x in data_path]
+        labels.append(fp)
         plt.plot(range(len(velocities)), velocities)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Velocity')
+    plt.title('Plot of velocities over time')
+    plt.legend(labels)
     plt.show()
 
 
 def acceleration_over_time(file_paths):
     time_interv = TIME_INTERVAL * 5
     plt.style.use('ggplot')
+    labels = []
     for fp in file_paths:
         data_path = np.genfromtxt(fp, delimiter=',')
         accelerations = []
@@ -75,13 +88,14 @@ def acceleration_over_time(file_paths):
             prev_v = v
             accelerations.append(acc)
         times = [x * time_interv for x in range(len(accelerations))]
+        labels.append(fp)
         plt.plot(times, accelerations, linewidth=2.0)
+    plt.legend(labels)
     plt.show()
 
 
 velocity_histogram(['gazebo_race_trajectory.txt','wavefront_gazebo_race_trajectory.txt'])
 velocity_over_time(
     ['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
-
-# acceleration_over_time(
-#     ['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
+acceleration_over_time(
+['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])

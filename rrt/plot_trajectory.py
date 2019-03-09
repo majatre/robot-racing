@@ -6,10 +6,13 @@ import numpy as np
 import matplotlib.pylab as plt
 from rrt import OccupancyGrid
 from matplotlib.collections import LineCollection
+import os
+
+directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
 def plot_race(occ_grid):
-  data_path = np.genfromtxt('../metrics/circuit_wavefront_gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt('../metrics/circuit_wavefront_gazebo_race_trajectory.txt', delimiter=',')
+  data_path = np.genfromtxt(directory + '/metrics/gazebo_race_path.txt', delimiter=',')
+  data_trajectory = np.genfromtxt(directory + '/metrics/gazebo_race_trajectory.txt', delimiter=',')
 
   plt.figure()
   plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
@@ -20,8 +23,8 @@ def plot_race(occ_grid):
 
 
 def plot_velocity(occ_grid):
-  data_path = np.genfromtxt('/tmp/gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt('/tmp/gazebo_race_trajectory.txt', delimiter=',')
+  data_path = np.genfromtxt(directory + '/metrics/gazebo_race_path.txt', delimiter=',')
+  data_trajectory = np.genfromtxt( directory + '/metrics/gazebo_race_trajectory.txt', delimiter=',')
 
   fig, axs = plt.subplots()
   velocities = data_trajectory[:, 2]
