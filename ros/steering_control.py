@@ -25,7 +25,7 @@ from tf.transformations import euler_from_quaternion
 
 from gazebo_msgs.msg import ModelStates
 
-MAX_SPEED = 1.5
+MAX_SPEED = 1.6
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
@@ -34,11 +34,11 @@ Y = 1
 YAW = 2
 
 prev_error = 0
-tau_p = 8
-tau_d = 160 # 20
+tau_p = 12
+tau_d = 220 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
-k_v = 2 #speed proportional gain 
+k_v = 1 #speed proportional gain 
 
 dt = 0.1
 
@@ -51,10 +51,10 @@ def PID(pose, path, velocity, current_speed):
 
   target_u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error/3))) 
   if target_u - current_speed > dt*k_v:
-    u = current_speed + dt*k_v*(target_u - current_speed)
+    u = current_speed + dt*k_v # *(target_u - current_speed)
   else:
     u = target_u
-  w = (tau_p*error + tau_d*error_change) * min(1.5*current_speed, 1)
+  w = (tau_p*error + tau_d*error_change) * current_speed
   return u, w
 
 
@@ -73,7 +73,7 @@ def calculate_error(pose, path_points):
       min_dist = dist
       min_point = i
 
-  lookahead = int(MAX_SPEED * 5)
+  lookahead = int(MAX_SPEED * 10) 
   if len(path_points) <= min_point + lookahead:
     return 0, 0
 
@@ -100,7 +100,7 @@ def get_curvature(a,b,c):
   return 4*A / (l1*l2*l3)
 
 def get_velocity(position, path_points):
-  max_acc = 0.45
+  max_acc = MAX_SPEED / 2.5
   max_velocity = MAX_SPEED
   v = np.zeros_like(position)
   if len(path_points) == 0:
@@ -123,21 +123,24 @@ def get_velocity(position, path_points):
     direction = path_points[-1]
     v = direction - position
   else:
-    lookahead = int(35 * max_velocity)
+    lookahead = int(40 * max_velocity)
     a_points = path_points[min_point : min_point+lookahead]
     b_points = path_points[min_point+1 : min_point+lookahead]
     c_points = path_points[min_point+2 : min_point+lookahead]
     curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
     curvature = sum(
       [sum(curvatures) / len(curvatures), 
-      sum(curvatures[:20]) / len(curvatures[:20]), 
-      sum(curvatures[:10]) / len(curvatures[:10])]
+      sum(curvatures[:int(lookahead/2)]) / len(curvatures[:int(lookahead/2)]), 
+      sum(curvatures[:int(lookahead/4)]) / len(curvatures[:int(lookahead/4)])]
       ) / 3
+
+    print(curvature)
     direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
-    if curvature > .65:
-      factor *= np.sqrt(max_acc / curvature)
+    if curvature > max_acc:
+      factor = np.sqrt(max_acc / curvature)
+      print(factor)
 
     v = factor * (direction - position) / np.linalg.norm(direction - position)
 
