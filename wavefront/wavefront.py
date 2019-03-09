@@ -142,7 +142,7 @@ class OccupancyGrid(object):
         inflated_grid = np.zeros_like(values)
         inflated_grid[values == OCCUPIED] = 1.
         # change to 6* when using square map.
-        w = 12 * int(ROBOT_RADIUS / resolution) + 1
+        w = 6 * int(ROBOT_RADIUS / resolution) + 1
         inflated_grid = scipy.signal.convolve2d(inflated_grid, np.ones((w, w)),
                                                 mode='same')
         self._values[inflated_grid > 0.] = OCCUPIED

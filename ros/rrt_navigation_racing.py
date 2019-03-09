@@ -37,173 +37,15 @@ try:
 except ImportError:
   raise ImportError('Unable to import potential_field.py. Make sure this file is in "{}"'.format(directory))
 
+from steering_control import PID, get_velocity
 
-SPEED = .2
+
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
 X = 0
 Y = 1
 YAW = 2
-
-prev_error = 0
-error_sum = 0
-tau_p = 8
-tau_d = 160 # 20
-tau_i = 0 #0.01
-k = 1  # control gain
-
-
-def PID(pose, path, velocity, current_speed):
-  global prev_error, error_sum, tau_p, tau_d, tau_i
-  cte, angle_diff = calculate_error(pose, path)
-  error = angle_diff + np.arctan2(k * cte, np.linalg.norm(velocity)) 
-  error_change = error - prev_error
-  prev_error = error
-  
-  #print('Errors', cte, error_change)
-
-  error_sum += error
-  #u = np.linalg.norm(velocity) #* max(0.3, (1 - abs(error)))
-  u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error/3))) 
-  #w = 1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
-  w = (tau_p*error + tau_d*error_change + tau_i*error_sum) * min(1.5*current_speed, 1)
- 
-  return u, w
-
-
-def stanley_steering(pose, path, velocity):
-  cte, angle_diff = calculate_error(pose, path)
-  
-  # theta_e corrects the heading error
-  theta_e = angle_diff
-  # theta_d corrects the cross track error
-  theta_d = np.arctan2(k * cte, np.linalg.norm(velocity))
-  # Steering control
-  delta = theta_e + theta_d
-
-  print('Errors', theta_e, theta_d)
-
-  dx_p = np.cos(delta)
-  dy_p = np.sin(delta)
-  theta = pose[YAW] 
-
-  u = np.linalg.norm(velocity) 
-  w = 2 * delta * u #1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
-  # w = tau_p*cte + tau_d*cte_change + tau_i*error_sum
-  print(u, w)
-  return u, w
-
-
-def calculate_error(pose, path_points):
-  if len(path_points) == 0:
-    return 0, 0
-
-  p = np.array([pose[X], pose[Y]], dtype=np.float32)
-
-  # Find the currently closest point in the path
-  min_dist = np.linalg.norm(p - path_points[0])
-  min_point = 0
-  for i, point in enumerate(path_points):
-    dist = np.linalg.norm(p - point)
-    if dist < min_dist:
-      min_dist = dist
-      min_point = i
-
-  if len(path_points) <= min_point + 5:
-    return 0, 0
-
-  p1 = path_points[min_point]
-  p2 = path_points[min_point+1]
-  p3 = path_points[min_point+4]
-  p4 = sum(path_points[min_point+5:min_point+7]) / len(path_points[min_point+5:min_point+7])
-
-  dist = -np.cross(p2-p1,p-p1)/np.linalg.norm(p2-p1)
-  #print('Distance', dist)
-  angle = np.arctan2((p4-p3)[1], (p4-p3)[0])
-  angle_diff = np.arctan2(np.sin(angle-pose[YAW]), np.cos(angle-pose[YAW]))
-  #print('Angle diff', angle_diff)
-
-
-  return dist, angle_diff
-
-
-
-def feedback_linearized(pose, velocity, epsilon):
-  # Implementation of feedback-linearization to follow the velocity
-  # vector given as argument. Epsilon corresponds to the distance of
-  # linearized point in front of the robot.
-  u = 0.  # [m/s]
-  w = 0.  # [rad/s] going counter-clockwise.
-
-  dx_p = velocity[0]
-  dy_p = velocity[1]
-  theta = pose[YAW] 
-    
-  u = dx_p*np.cos(theta) + dy_p*np.sin(theta)
-  w = 1/epsilon * (-dx_p*np.sin(theta) + dy_p*np.cos(theta))
-  return u, w
-
-
-def get_area(a,b,c):
-  return 1/2 * abs((b[X] - a[X]) * (c[Y] - a[Y]) - (b[Y] - a[Y]) *(c[X] - a[X]))
-
-def get_curvature(a,b,c):
-  A = get_area(a,b,c)
-  l1 = np.linalg.norm(b-a)
-  l2 = np.linalg.norm(c-a)
-  l3 = np.linalg.norm(c-b)
-  return 4*A / (l1*l2*l3)
-
-def get_velocity(position, path_points):
-  max_acc = 0.45
-  max_velocity = 1.4
-  v = np.zeros_like(position)
-  if len(path_points) == 0:
-    return v
-  # Stop moving if the goal is reached.
-  if np.linalg.norm(position - path_points[-1]) < .2:
-    return v
-
-  # Find the currently closest point in the path
-  min_dist = np.linalg.norm(position - path_points[0])
-  min_point = 0
-  for i, p in enumerate(path_points):
-    dist = np.linalg.norm(position - p)
-    if dist < min_dist:
-      min_dist = dist
-      min_point = i
-
-  # Move in the direction of the next point
-  if len(path_points) <= min_point + 3:
-    direction = path_points[-1]
-    v = direction - position
-  else:
-    a_points = path_points[min_point : min_point+41]
-    b_points = path_points[min_point+1 : min_point+42]
-    c_points = path_points[min_point+2 : min_point+43]
-    curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
-    curvature = sum(
-      [sum(curvatures) / len(curvatures), 
-      sum(curvatures[:20]) / len(curvatures[:20]), 
-      sum(curvatures[:10]) / len(curvatures[:10])]
-      ) / 3
-    direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
-    factor = max_velocity
-   
-    if curvature > .65:
-      #print('Curva', curvature)
-      factor *= np.sqrt(max_acc / curvature)
-
-    v = factor * (direction - position) / np.linalg.norm(direction - position)
-    #print(v, np.linalg.norm(v))
-
-
-  if np.linalg.norm(v) > max_velocity:
-    v *= max_velocity / np.linalg.norm(v)
-  # Scale the velocity to have a magnitude of 0.2.
-  return  v
-
 
 class GroundtruthPose(object):
   def __init__(self, name='turtlebot3_burger'):
@@ -243,67 +85,6 @@ class GroundtruthPose(object):
     return self._velocity
 
 
-class GoalPose(object):
-  def __init__(self):
-    #rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.callback)
-    self._position = GOAL_POSITION
-
-  def callback(self, msg):
-    # The pose from RViz is with respect to the "map".
-    self._position[X] = msg.pose.position.x
-    self._position[Y] = msg.pose.position.y
-    print('Received new goal position:', self._position)
-
-  @property
-  def ready(self):
-    return not np.isnan(self._position[0])
-
-  @property
-  def position(self):
-    return self._position
-
-
-def get_path(final_node):
-  # Construct path from RRT solution.
-  if final_node is None:
-    return []
-  path_reversed = []
-  path_reversed.append(final_node)
-  while path_reversed[-1].parent is not None:
-    path_reversed.append(path_reversed[-1].parent)
-  path = list(reversed(path_reversed))
-  # Put a point every 5 cm.
-  distance = 0.05
-  offset = 0.
-  points_x = []
-  points_y = []
-  for u, v in zip(path, path[1:]):
-    center, radius = rrt.find_circle(u, v)
-    du = u.position - center
-    theta1 = np.arctan2(du[1], du[0])
-    dv = v.position - center
-    theta2 = np.arctan2(dv[1], dv[0])
-    # Check if the arc goes clockwise.
-    clockwise = np.cross(u.direction, du).item() > 0.
-    # Generate a point every 5cm apart.
-    da = distance / radius
-    offset_a = offset / radius
-    if clockwise:
-      da = -da
-      offset_a = -offset_a
-      if theta2 > theta1:
-        theta2 -= 2. * np.pi
-    else:
-      if theta2 < theta1:
-        theta2 += 2. * np.pi
-    angles = np.arange(theta1 + offset_a, theta2, da)
-    offset = distance - (theta2 - angles[-1]) * radius
-    points_x.extend(center[X] + np.cos(angles) * radius)
-    points_y.extend(center[Y] + np.sin(angles) * radius)
-  print(zip(points_x, points_y))
-  return zip(points_x, points_y)
-  
-
 def run(args, occ_grid):
   sart_time = 0
   rospy.init_node('rrt_navigation')
@@ -314,11 +95,8 @@ def run(args, occ_grid):
 
   # Update control every 100 ms.
   rate_limiter = rospy.Rate(100)
-  #publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
   publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
-  path_publisher = rospy.Publisher('/path', Path, queue_size=1)
   groundtruth = GroundtruthPose()
-  goal =  GoalPose()
   frame_id = 0
   current_path = []
   pose_history = []
@@ -347,11 +125,10 @@ def run(args, occ_grid):
     #   rate_limiter.sleep()
     #   continue
 
-    goal_reached = np.linalg.norm(groundtruth.pose[:2] - goal.position) < .4
-    print(goal_reached, np.linalg.norm(groundtruth.pose[:2] - goal.position))
+    goal_reached = np.linalg.norm(groundtruth.pose[:2] - GOAL_POSITION) < .4
     if goal_reached:
       finish_time = rospy.Time.now().to_sec()
-      print(finish_time - start_time)
+      print('------- Time:', finish_time - start_time)
       plot_trajectory.plot_race(occ_grid)
       plot_trajectory.plot_velocity(occ_grid)
       publisher.publish(stop_msg)
@@ -367,10 +144,13 @@ def run(args, occ_grid):
     #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
     vel_msg = Twist()
     vel_msg.linear.x = u
+    vel_msg.linear.y = .0
+    vel_msg.linear.z = .0
+    vel_msg.angular.x = .0
+    vel_msg.angular.y = .0
     vel_msg.angular.z = w
     publisher.publish(vel_msg)
 
-    print(groundtruth.pose[:2])
     #print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
     # Log groundtruth positions in /tmp/gazebo_exercise.txt
     pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
@@ -381,28 +161,21 @@ def run(args, occ_grid):
 
     # Update plan every 1s.
     time_since = current_time - previous_time
-    if current_path and time_since <60.:
+    if current_path and time_since < 60.:
       rate_limiter.sleep()
       continue
     previous_time = current_time
 
     # Run RRT.
-    print(groundtruth.pose, goal.position)
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
     xy_path = np.genfromtxt(directory + '/paths/rrt_path_sharp2.txt' , delimiter=',')
     current_path = [(xy[0],xy[1]) for xy in xy_path]
 
     print('Path', current_path)
     if not current_path:
-      print('Unable to reach goal position:', goal.position)
+      print('Unable to reach goal position:', GOAL_POSITION)
     else:
       start_time = rospy.Time.now().to_sec()
-
-    prev_cte = 0
-    error_sum = 0
-    tau_p = 1 
-    tau_d = 0 
-    tau_i = 0
 
      # Log groundtruth positions in /tmp/gazebo_exercise.txt
     with open(directory + '/../metrics/gazebo_race_path.txt', 'a') as fp:
