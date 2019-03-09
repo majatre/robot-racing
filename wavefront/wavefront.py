@@ -48,14 +48,14 @@ def compute_weights(occupancy_grid_values, goal_index):
         neighbours[i + 1] = []
         for n in neighbours[i]:
             x, y = n
-            for a, b in itertools.product([x - 1, x, x + 1], [y - 1, y, y + 1]):
+            for a, b in itertools.product([x, x - 1,  x + 1], [y, y - 1, y + 1]):
                 if 0 <= a < grid_shape_x and 0 <= b < grid_shape_y:
                     if occupancy_grid_values[a][b] == 0 and visited[a][b] == 0:
                         visited[a][b] = 1
                         weights[a][b] = weights[x][y] + 1
                         neighbours[i + 1].append([a, b])
                         if np.abs(a - x) == np.abs(b - y) == 1:
-                            weights[a][b] = weights[x][y] + 1.5
+                            weights[a][b] = weights[x][y] + 1.41
         if len(neighbours[i + 1]) == 0:
             condition = False
         else:
@@ -90,7 +90,7 @@ def compute_path(occupancy_grid_values, start_index, goal_index):
         current_node = min_neigh
         path.append(current_node)
 
-    return path[0::3]
+    return path
 
 
 def run_path_planning(occ_grid, start_pose, goal_pose):
@@ -243,6 +243,14 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
     elif 'maps/square' in args.map:
+        occupancy_grid[177, 160:180] = OCCUPIED
+        GOAL_POSITION = np.array([-1., -1.5],
+                                 dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+    elif 'maps/map_sharp_turn' in args.map:
+        GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+    elif 'smooth' in args.map:
         occupancy_grid[177, 160:180] = OCCUPIED
         GOAL_POSITION = np.array([-1., -1.5],
                                  dtype=np.float32)  # Any orientation is good.

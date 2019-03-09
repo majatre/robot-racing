@@ -1,5 +1,5 @@
 <launch>
 	<arg name="mode" />
 
-	<node pkg="exercises" type="wavefront_navigation.py" name="wavefront_navigation" output="screen"></node>
+	<node pkg="exercises" type="wavefront_navigation.1.py" name="wavefront_navigation" output="screen"></node>
 </launch>

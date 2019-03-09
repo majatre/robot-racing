@@ -29,7 +29,7 @@ OCCUPIED = 2
 ROBOT_RADIUS = 0.105 / 2.
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
 START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-MAX_ITERATIONS = 1000
+MAX_ITERATIONS = 500
 SAMPLING = 'uniform'
 
 import scipy.interpolate as si
@@ -110,7 +110,7 @@ def calculate_cost(parent, position, occupancy_grid):
     
     cost = parent.cost + d
     if angle_diff > (np.pi / 8):
-        cost += 0.1 * (3*angle_diff)**2 / d
+        cost += 0.1 * (2*angle_diff)**2 / d
 
     if check_collisions(parent, position, occupancy_grid):
         return float("inf")
@@ -582,6 +582,9 @@ if __name__ == '__main__':
         occupancy_grid[175, 160:180] = OCCUPIED
         GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+    elif args.map == 'maps/map_sharp_turn':
+        GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
 
     occupancy_grid = OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])
 
@@ -637,7 +640,7 @@ if __name__ == '__main__':
 
     print(rx2,ry2)
 
-    with open('/tmp/rrt_path_2.txt', 'w') as fp:
+    with open('/tmp/rrt_path_sharp.txt', 'w') as fp:
       fp.write('\n'.join(','.join(str(v) for v in p) for p in zip(rx2,ry2)) + '\n')
       pose_history = []
 

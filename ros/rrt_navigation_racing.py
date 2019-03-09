@@ -61,7 +61,7 @@ def PID(pose, path, velocity, current_speed):
   error_change = error - prev_error
   prev_error = error
   
-  print('Errors', cte, error_change)
+  #print('Errors', cte, error_change)
 
   error_sum += error
   #u = np.linalg.norm(velocity) #* max(0.3, (1 - abs(error)))
@@ -110,16 +110,19 @@ def calculate_error(pose, path_points):
       min_dist = dist
       min_point = i
 
+  if len(path_points) <= min_point + 5:
+    return 0, 0
+
   p1 = path_points[min_point]
   p2 = path_points[min_point+1]
-  p3 = path_points[min_point+3]
-  p4 = sum(path_points[min_point+4:min_point+7]) / len(path_points[min_point+4:min_point+7])
+  p3 = path_points[min_point+4]
+  p4 = sum(path_points[min_point+5:min_point+7]) / len(path_points[min_point+5:min_point+7])
 
   dist = -np.cross(p2-p1,p-p1)/np.linalg.norm(p2-p1)
-  print('Distance', dist)
+  #print('Distance', dist)
   angle = np.arctan2((p4-p3)[1], (p4-p3)[0])
   angle_diff = np.arctan2(np.sin(angle-pose[YAW]), np.cos(angle-pose[YAW]))
-  print('Angle diff', angle_diff)
+  #print('Angle diff', angle_diff)
 
 
   return dist, angle_diff
@@ -176,17 +179,16 @@ def get_velocity(position, path_points):
     direction = path_points[-1]
     v = direction - position
   else:
-    a_points = path_points[min_point : min_point+31]
-    b_points = path_points[min_point+1 : min_point+32]
-    c_points = path_points[min_point+2 : min_point+33]
+    a_points = path_points[min_point : min_point+41]
+    b_points = path_points[min_point+1 : min_point+42]
+    c_points = path_points[min_point+2 : min_point+43]
     curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
     curvature = sum(
       [sum(curvatures) / len(curvatures), 
       sum(curvatures[:20]) / len(curvatures[:20]), 
-      sum(curvatures[:10]) / len(curvatures[:10]), 
-      sum(curvatures[:5]) / len(curvatures[:5])]
-      ) / 4
-    direction = sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
+      sum(curvatures[:10]) / len(curvatures[:10])]
+      ) / 3
+    direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
     if curvature > .65:
@@ -305,9 +307,9 @@ def get_path(final_node):
 def run(args, occ_grid):
   sart_time = 0
   rospy.init_node('rrt_navigation')
-  with open('/tmp/gazebo_race_path.txt', 'w'):
+  with open(directory + '/../metrics/gazebo_race_path.txt', 'w'):
    pass
-  with open('/tmp/gazebo_race_trajectory.txt', 'w'):
+  with open(directory + '/../metrics/gazebo_race_trajectory.txt', 'w'):
    pass
 
   # Update control every 100 ms.
@@ -346,11 +348,12 @@ def run(args, occ_grid):
     #   continue
 
     goal_reached = np.linalg.norm(groundtruth.pose[:2] - goal.position) < .4
+    print(goal_reached, np.linalg.norm(groundtruth.pose[:2] - goal.position))
     if goal_reached:
       finish_time = rospy.Time.now().to_sec()
       print(finish_time - start_time)
-      #plot_trajectory.plot_race(occ_grid)
-      #plot_trajectory.plot_velocity(occ_grid)
+      plot_trajectory.plot_race(occ_grid)
+      plot_trajectory.plot_velocity(occ_grid)
       publisher.publish(stop_msg)
       rate_limiter.sleep()
       continue
@@ -367,12 +370,12 @@ def run(args, occ_grid):
     vel_msg.angular.z = w
     publisher.publish(vel_msg)
 
-
-    print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
+    print(groundtruth.pose[:2])
+    #print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
     # Log groundtruth positions in /tmp/gazebo_exercise.txt
     pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
     if len(pose_history) % 10:
-      with open('/tmp/gazebo_race_trajectory.txt', 'a') as fp:
+      with open(directory + '/../metrics/gazebo_race_trajectory.txt', 'a') as fp:
         fp.write('\n'.join(','.join(str(v) for v in p) for p in pose_history) + '\n')
         pose_history = []
 
@@ -386,7 +389,7 @@ def run(args, occ_grid):
     # Run RRT.
     print(groundtruth.pose, goal.position)
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
-    xy_path = np.genfromtxt('/tmp/rrt_path_2.txt', delimiter=',')
+    xy_path = np.genfromtxt(directory + '/paths/rrt_path_sharp2.txt' , delimiter=',')
     current_path = [(xy[0],xy[1]) for xy in xy_path]
 
     print('Path', current_path)
@@ -402,7 +405,7 @@ def run(args, occ_grid):
     tau_i = 0
 
      # Log groundtruth positions in /tmp/gazebo_exercise.txt
-    with open('/tmp/gazebo_race_path.txt', 'a') as fp:
+    with open(directory + '/../metrics/gazebo_race_path.txt', 'a') as fp:
       fp.write('\n'.join(','.join(str(v) for v in p) for p in current_path) + '\n')
       pose_history = []
       
@@ -413,7 +416,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/map_sharp_turn', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.
@@ -439,6 +442,10 @@ if __name__ == '__main__':
     occupancy_grid[176, 160:180] = rrt.OCCUPIED
     GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+  elif args.map == 'maps/map_sharp_turn':
+    GOAL_POSITION = np.array([0.7, -1], dtype=np.float32)  # Any orientation is good.
+    START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+
 
   occupancy_grid = rrt.OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])
 
