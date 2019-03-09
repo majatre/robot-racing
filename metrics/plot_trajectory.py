@@ -7,6 +7,7 @@ import matplotlib.pylab as plt
 # from rrt import OccupancyGrid
 from matplotlib.collections import LineCollection
 
+TIME_INTERVAL = 0.1
 # def plot_race(occ_grid):
 #   data_path = np.genfromtxt('/tmp/gazebo_race_path.txt', delimiter=',')
 #   data_trajectory = np.genfromtxt('/tmp/gazebo_race_trajectory.txt', delimiter=',')
@@ -42,24 +43,45 @@ from matplotlib.collections import LineCollection
 
 
 def velocity_histogram(file_paths):
-  data = []
-  for fp in file_paths:
-    data_path = np.genfromtxt(fp, delimiter=',')
-    velocities = [x[2] for x in data_path]
-    data.append(velocities)
-  n, bins, patches = plt.hist(data, 25)
-  plt.show()
+    plt.style.use('ggplot')
+    data = []
+    for fp in file_paths:
+        data_path = np.genfromtxt(fp, delimiter=',')
+        velocities = [x[2] for x in data_path]
+        data.append(velocities)
+    plt.hist(data, 25)
+    plt.show()
 
 
 def velocity_over_time(file_paths):
-  #data_path = np.genfromtxt(file_path, delimiter=',')
-  for fp in file_paths:
-    data_path = np.genfromtxt(fp, delimiter=',')
-    velocities = [x[2] for x in data_path]
-    plt.plot(range(len(velocities)), velocities)
-  plt.show()
-
-#velocity_histogram(['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
-velocity_over_time(['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
+    plt.style.use('ggplot')
+    for fp in file_paths:
+        data_path = np.genfromtxt(fp, delimiter=',')
+        velocities = [x[2] for x in data_path]
+        plt.plot(range(len(velocities)), velocities)
+    plt.show()
 
 
+def acceleration_over_time(file_paths):
+    time_interv = TIME_INTERVAL * 5
+    plt.style.use('ggplot')
+    for fp in file_paths:
+        data_path = np.genfromtxt(fp, delimiter=',')
+        accelerations = []
+        prev_x, prev_y, prev_v = data_path[0]
+        data_path = data_path[0::20]
+        for x, y, v in data_path:
+            acc = (v - prev_v) / time_interv
+            prev_v = v
+            accelerations.append(acc)
+        times = [x * time_interv for x in range(len(accelerations))]
+        plt.plot(times, accelerations, linewidth=2.0)
+    plt.show()
+
+
+velocity_histogram(['gazebo_race_trajectory.txt','wavefront_gazebo_race_trajectory.txt'])
+velocity_over_time(
+    ['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])
+
+# acceleration_over_time(
+#     ['gazebo_race_trajectory.txt', 'wavefront_gazebo_race_trajectory.txt'])

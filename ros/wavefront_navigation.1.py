@@ -26,10 +26,12 @@ from tf.transformations import euler_from_quaternion
 from gazebo_msgs.msg import ModelStates
 
 # Import the potential_field.py code rather than copy-pasting.
-directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../wavefront')
+directory = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         '../wavefront')
 sys.path.insert(0, directory)
 
-directory_rrt = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../rrt')
+directory_rrt = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             '../rrt')
 sys.path.insert(0, directory_rrt)
 try:
     import wavefront as wavefront
@@ -50,62 +52,64 @@ YAW = 2
 prev_error = 0
 error_sum = 0
 tau_p = 8
-tau_d = 160 # 20
-tau_i = 0 #0.01
+tau_d = 160  # 20
+tau_i = 0  # 0.01
 k = 1  # control gain
 
 
 def PID(pose, path, velocity):
-  global prev_error, error_sum, tau_p, tau_d, tau_i
-  cte, angle_diff = calculate_error(pose, path)
-  error = angle_diff + np.arctan2(k * cte, np.linalg.norm(velocity)) 
-  error_change = error - prev_error
-  prev_error = error
-  
-  error_sum += error
-  u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error/3))) 
-  w = (tau_p*error + tau_d*error_change + tau_i*error_sum) * min(1.5*u, 1)
+    global prev_error, error_sum, tau_p, tau_d, tau_i
+    cte, angle_diff = calculate_error(pose, path)
+    error = angle_diff + np.arctan2(k * cte, np.linalg.norm(velocity))
+    error_change = error - prev_error
+    prev_error = error
 
-  print(w, angle_diff, cte, error, error_change)  
-#   print(error_sum)
-#   if abs(error_sum) < 20:
-#     w = w / 2
-    
-  return u, w
+    error_sum += error
+    u = np.linalg.norm(velocity) * max(0.3, (1 - abs(error / 3)))
+    w = (tau_p * error + tau_d * error_change + tau_i * error_sum) * min(
+        1.5 * u, 1)
+
+    print(w, angle_diff, cte, error, error_change)
+    #   print(error_sum)
+    #   if abs(error_sum) < 20:
+    #     w = w / 2
+
+    return u, w
 
 
 def calculate_error(pose, path_points):
-  if len(path_points) == 0:
-    return 0, 0
+    if len(path_points) == 0:
+        return 0, 0
 
-  p = np.array([pose[X], pose[Y]], dtype=np.float32)
+    p = np.array([pose[X], pose[Y]], dtype=np.float32)
 
-  # Find the currently closest point in the path
-  min_dist = np.linalg.norm(p - path_points[0])
-  min_point = 0
-  for i, point in enumerate(path_points):
-    dist = np.linalg.norm(p - point)
-    if dist < min_dist:
-      min_dist = dist
-      min_point = i
+    # Find the currently closest point in the path
+    min_dist = np.linalg.norm(p - path_points[0])
+    min_point = 0
+    for i, point in enumerate(path_points):
+        dist = np.linalg.norm(p - point)
+        if dist < min_dist:
+            min_dist = dist
+            min_point = i
 
-  if len(path_points) <= min_point + 10:
-    return 0, 0
+    if len(path_points) <= min_point + 10:
+        return 0, 0
 
+    p1 = path_points[min_point]
+    p2 = path_points[min_point + 1]
+    p3 = path_points[min_point + 2]
+    p4 = sum(path_points[min_point + 5:min_point + 10]) / len(
+        path_points[min_point + 5:min_point + 10])
 
-  p1 = path_points[min_point]
-  p2 = path_points[min_point+1]
-  p3 = path_points[min_point+2]
-  p4 = sum(path_points[min_point+5:min_point+10]) / len(path_points[min_point+5:min_point+10])
+    dist = -np.cross(p2 - p1, p - p1) / np.linalg.norm(p2 - p1)
+    angle = np.arctan2((p4 - p3)[1], (p4 - p3)[0])
+    angle_diff = np.arctan2(np.sin(angle - pose[YAW]),
+                            np.cos(angle - pose[YAW]))
 
-  dist = -np.cross(p2-p1,p-p1)/np.linalg.norm(p2-p1)
-  angle = np.arctan2((p4-p3)[1], (p4-p3)[0])
-  angle_diff = np.arctan2(np.sin(angle-pose[YAW]), np.cos(angle-pose[YAW]))
+    #   if min_point < 40:
+    #     return dist/4, angle_diff/4
 
-#   if min_point < 40:
-#     return dist/4, angle_diff/4
-
-  return dist, angle_diff
+    return dist, angle_diff
 
 
 def feedback_linearized(pose, velocity, epsilon):
@@ -136,54 +140,58 @@ def get_curvature(a, b, c):
     l3 = np.linalg.norm(c - b)
     return 4 * A / (l1 * l2 * l3)
 
+
 def get_velocity(position, path_points):
-  max_acc = 1.2
-  max_velocity = 1.2
-  v = np.zeros_like(position)
-  if len(path_points) == 0:
+    max_acc = 1.2
+    max_velocity = 1.2
+    v = np.zeros_like(position)
+    if len(path_points) == 0:
+        return v
+    # Stop moving if the goal is reached.
+    if np.linalg.norm(position - path_points[-1]) < .2:
+        return v
+
+    # Find the currently closest point in the path
+    min_dist = np.linalg.norm(position - path_points[0])
+    min_point = 0
+    for i, p in enumerate(path_points):
+        dist = np.linalg.norm(position - p)
+        if dist < min_dist:
+            min_dist = dist
+            min_point = i
+
+    # Move in the direction of the next point
+    if len(path_points) <= min_point + 3:
+        direction = path_points[-1]
+        v = direction - position
+    else:
+        a_points = path_points[min_point: min_point + 41]
+        b_points = path_points[min_point + 1: min_point + 42]
+        c_points = path_points[min_point + 2: min_point + 43]
+        curvatures = [get_curvature(a, b, c) for a, b, c in
+                      zip(a_points, b_points, c_points)]
+        curvature = sum(
+            [sum(curvatures) / len(curvatures),
+             sum(curvatures[:20]) / len(curvatures[:20]),
+             sum(curvatures[:10]) / len(curvatures[:10])]
+        ) / 3
+        direction = path_points[
+            min_point + 1]  # sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
+        factor = max_velocity
+
+        if curvature > .65:
+            # print('Curva', curvature)
+            factor *= np.sqrt(max_acc / curvature)
+
+        v = factor * (direction - position) / np.linalg.norm(
+            direction - position)
+        # print(v, np.linalg.norm(v))
+
+    if np.linalg.norm(v) > max_velocity:
+        v *= max_velocity / np.linalg.norm(v)
+    # Scale the velocity to have a magnitude of 0.2.
     return v
-  # Stop moving if the goal is reached.
-  if np.linalg.norm(position - path_points[-1]) < .2:
-    return v
 
-  # Find the currently closest point in the path
-  min_dist = np.linalg.norm(position - path_points[0])
-  min_point = 0
-  for i, p in enumerate(path_points):
-    dist = np.linalg.norm(position - p)
-    if dist < min_dist:
-      min_dist = dist
-      min_point = i
-
-  # Move in the direction of the next point
-  if len(path_points) <= min_point + 3:
-    direction = path_points[-1]
-    v = direction - position
-  else:
-    a_points = path_points[min_point : min_point+41]
-    b_points = path_points[min_point+1 : min_point+42]
-    c_points = path_points[min_point+2 : min_point+43]
-    curvatures = [get_curvature(a,b,c) for a,b,c in zip(a_points, b_points, c_points)]
-    curvature = sum(
-      [sum(curvatures) / len(curvatures), 
-      sum(curvatures[:20]) / len(curvatures[:20]), 
-      sum(curvatures[:10]) / len(curvatures[:10])]
-      ) / 3
-    direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
-    factor = max_velocity
-   
-    if curvature > .65:
-      #print('Curva', curvature)
-      factor *= np.sqrt(max_acc / curvature)
-
-    v = factor * (direction - position) / np.linalg.norm(direction - position)
-    #print(v, np.linalg.norm(v))
-
-
-  if np.linalg.norm(v) > max_velocity:
-    v *= max_velocity / np.linalg.norm(v)
-  # Scale the velocity to have a magnitude of 0.2.
-  return  v
 
 # def get_velocity(position, path_points):
 #     max_acc = 1.2
@@ -242,68 +250,74 @@ def get_velocity(position, path_points):
 
 
 class GroundtruthPose(object):
-  def __init__(self, name='turtlebot3_burger'):
-    rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
-    self._pose = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
-    self._velocity = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
-    self._name = name
+    def __init__(self, name='turtlebot3_burger'):
+        rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
+        self._pose = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
+        self._velocity = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
+        self._name = name
 
-  def callback(self, msg):
-    idx = [i for i, n in enumerate(msg.name) if n == self._name]
-    if not idx:
-      raise ValueError('Specified name "{}" does not exist.'.format(self._name))
-    idx = idx[0]
-    self._pose[X] = msg.pose[idx].position.x
-    self._pose[Y] = msg.pose[idx].position.y
-    _, _, yaw = euler_from_quaternion([
-        msg.pose[idx].orientation.x,
-        msg.pose[idx].orientation.y,
-        msg.pose[idx].orientation.z,
-        msg.pose[idx].orientation.w])
-    self._pose[YAW] = yaw
-    self._velocity[0] = msg.twist[idx].linear.x
-    self._velocity[1] = msg.twist[idx].linear.y
-    self._velocity[2] = msg.twist[idx].linear.z
-   # print(msg.twist[idx])
+    def callback(self, msg):
+        idx = [i for i, n in enumerate(msg.name) if n == self._name]
+        if not idx:
+            raise ValueError(
+                'Specified name "{}" does not exist.'.format(self._name))
+        idx = idx[0]
+        self._pose[X] = msg.pose[idx].position.x
+        self._pose[Y] = msg.pose[idx].position.y
+        _, _, yaw = euler_from_quaternion([
+            msg.pose[idx].orientation.x,
+            msg.pose[idx].orientation.y,
+            msg.pose[idx].orientation.z,
+            msg.pose[idx].orientation.w])
+        self._pose[YAW] = yaw
+        self._velocity[0] = msg.twist[idx].linear.x
+        self._velocity[1] = msg.twist[idx].linear.y
+        self._velocity[2] = msg.twist[idx].linear.z
 
-  @property
-  def ready(self):
-    return not np.isnan(self._pose[0])
+    # print(msg.twist[idx])
 
-  @property
-  def pose(self):
-    return self._pose
+    @property
+    def ready(self):
+        return not np.isnan(self._pose[0])
 
-  @property
-  def velocity(self):
-    return self._velocity
+    @property
+    def pose(self):
+        return self._pose
+
+    @property
+    def velocity(self):
+        return self._velocity
 
 
 class GoalPose(object):
-  def __init__(self):
-    #rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.callback)
-    self._position = GOAL_POSITION
+    def __init__(self):
+        # rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.callback)
+        self._position = GOAL_POSITION
 
-  def callback(self, msg):
-    # The pose from RViz is with respect to the "map".
-    self._position[X] = msg.pose.position.x
-    self._position[Y] = msg.pose.position.y
-    print('Received new goal position:', self._position)
+    def callback(self, msg):
+        # The pose from RViz is with respect to the "map".
+        self._position[X] = msg.pose.position.x
+        self._position[Y] = msg.pose.position.y
+        print('Received new goal position:', self._position)
 
-  @property
-  def ready(self):
-    return not np.isnan(self._position[0])
+    @property
+    def ready(self):
+        return not np.isnan(self._position[0])
 
-  @property
-  def position(self):
-    return self._position
+    @property
+    def position(self):
+        return self._position
 
 
 def run(args, occ_grid):
     rospy.init_node('wavefront_navigation')
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'w'):
+    with open(
+            directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(
+                    args.map.split('/')[1]), 'w'):
         pass
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'w'):
+    with open(
+            directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(
+                    args.map.split('/')[1]), 'w'):
         pass
 
     # Update control every 100 ms.
@@ -354,8 +368,9 @@ def run(args, occ_grid):
             groundtruth.pose[Y] + EPSILON * np.sin(groundtruth.pose[YAW])],
             dtype=np.float32)
         v = get_velocity(position, np.array(current_path, dtype=np.float32))
-        u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32), v)
-        #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
+        u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32),
+                   v)
+        # u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
         vel_msg = Twist()
         vel_msg.linear.x = u
         vel_msg.angular.z = w
@@ -363,9 +378,12 @@ def run(args, occ_grid):
 
         # Log groundtruth positions in /tmp/gazebo_exercise.txt
         pose_history.append(
-            [groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
+            [groundtruth.pose[X], groundtruth.pose[Y],
+             np.linalg.norm(groundtruth.velocity)])
         if len(pose_history) % 10:
-            with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'a') as fp:
+            with open(
+                    directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(
+                            args.map.split('/')[1]), 'a') as fp:
                 fp.write('\n'.join(
                     ','.join(str(v) for v in p) for p in pose_history) + '\n')
                 pose_history = []
@@ -377,9 +395,10 @@ def run(args, occ_grid):
             continue
         previous_time = current_time
 
-
         # Run Wavefront.
-        current_path = wavefront.run_path_planning(occ_grid, groundtruth.pose[:2], goal.position)
+        current_path = wavefront.run_path_planning(occ_grid,
+                                                   groundtruth.pose[:2],
+                                                   goal.position)
 
         if len(current_path) == 0:
             print('Unable to reach goal position:', goal.position)
@@ -388,7 +407,9 @@ def run(args, occ_grid):
             print(current_path)
 
         # Log groundtruth positions in /tmp/gazebo_exercise.txt
-        with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'a') as fp:
+        with open(
+                directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(
+                        args.map.split('/')[1]), 'a') as fp:
             fp.write('\n'.join(
                 ','.join(str(v) for v in p) for p in current_path) + '\n')
             pose_history = []
@@ -399,7 +420,8 @@ def run(args, occ_grid):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
+    parser = argparse.ArgumentParser(
+        description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
                         default='maps/circuit',
                         help='Which map to use.')
@@ -408,7 +430,9 @@ if __name__ == '__main__':
     # Load map.
     with open(directory_rrt + '/' + args.map + '.yaml') as fp:
         data = yaml.load(fp)
-    img = wavefront.read_pgm(os.path.join(os.path.dirname(directory_rrt + '/' + args.map), data['image']))
+    img = wavefront.read_pgm(
+        os.path.join(os.path.dirname(directory_rrt + '/' + args.map),
+                     data['image']))
     occupancy_grid = np.empty_like(img, dtype=np.int8)
     occupancy_grid[:] = wavefront.UNKNOWN
     occupancy_grid[img < .1] = wavefront.OCCUPIED
@@ -431,7 +455,8 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
     elif 'map_sharp_turn' in args.map:
-        GOAL_POSITION = np.array([0.5, -1], dtype=np.float32)  # Any orientation is good.
+        GOAL_POSITION = np.array([0.5, -1],
+                                 dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
     elif 'smooth' in args.map:
         occupancy_grid[177, 160:180] = wavefront.OCCUPIED
@@ -439,12 +464,10 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
-
     occupancy_grid = wavefront.OccupancyGrid(occupancy_grid, data['origin'],
-                                       data['resolution'])
+                                             data['resolution'])
 
     try:
         run(args, occupancy_grid)
     except rospy.ROSInterruptException:
         pass
-
