@@ -224,7 +224,7 @@ if __name__ == '__main__':
         GOAL_POSITION = np.array([-1., -1.5],
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
-    elif 'maps/map_sharp_turn' in args.map:
+    elif 'sharp' in args.map:
         GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
     elif 'smooth' in args.map:
