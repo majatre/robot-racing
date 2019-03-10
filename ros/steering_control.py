@@ -38,7 +38,7 @@ tau_p = 8
 tau_d = 160 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
-k_v = 1.5 #speed proportional gain 
+k_v = 1 #speed proportional gain
 
 dt = 0.1
 

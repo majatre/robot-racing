@@ -88,9 +88,11 @@ class GroundtruthPose(object):
 
 def run(args, occ_grid):
     rospy.init_node('wavefront_navigation')
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'w'):
+    file_path = directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1])
+    file_trajectory = directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1])
+    with open(file_path, 'w'):
         pass
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'w'):
+    with open(file_trajectory, 'w'):
         pass
 
     # Update control every 100 ms.
@@ -129,7 +131,7 @@ def run(args, occ_grid):
         if goal_reached:
             finish_time = rospy.Time.now().to_sec()
             print('------- Time:', finish_time - start_time)
-            plot_trajectory.plot_race(occ_grid)
+            plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
             publisher.publish(stop_msg)
             rate_limiter.sleep()
             continue
@@ -151,7 +153,7 @@ def run(args, occ_grid):
         pose_history.append(
             [groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
         if len(pose_history) % 10:
-            with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'a') as fp:
+            with open(file_trajectory, 'a') as fp:
                 fp.write('\n'.join(
                     ','.join(str(v) for v in p) for p in pose_history) + '\n')
                 pose_history = []
@@ -174,7 +176,7 @@ def run(args, occ_grid):
             print(current_path)
 
         # Log groundtruth positions in /tmp/gazebo_exercise.txt
-        with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'a') as fp:
+        with open(file_path, 'a') as fp:
             fp.write('\n'.join(
                 ','.join(str(v) for v in p) for p in current_path) + '\n')
             pose_history = []
@@ -187,7 +189,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='maps/circuit',
+                        default='maps/sharp_turn',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 
@@ -214,7 +216,7 @@ if __name__ == '__main__':
       occupancy_grid[176, 160:180] = wavefront.OCCUPIED
       GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
       START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
-    elif args.map == 'maps/map_sharp_turn':
+    elif args.map == 'maps/sharp_turn':
       GOAL_POSITION = np.array([0.7, -1], dtype=np.float32)  # Any orientation is good.
       START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
     elif args.map == 'maps/smooth_turn':
