@@ -168,7 +168,7 @@ def run(args, occ_grid):
 
     # Run RRT.
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
-    xy_path = np.genfromtxt(directory + '/paths/rrt_path_circuit3.txt' , delimiter=',')
+    xy_path = np.genfromtxt(directory + '/paths/rrt_path_circuit.txt' , delimiter=',')
     current_path = [(xy[0],xy[1]) for xy in xy_path]
 
     for a,b in zip(current_path, current_path[1:]):
@@ -221,6 +221,10 @@ if __name__ == '__main__':
   elif args.map == 'maps/map_sharp_turn':
     GOAL_POSITION = np.array([0.7, -1], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+  elif args.map == 'maps/smooth_turn':
+    occupancy_grid[175, 160:180] = rrt.OCCUPIED
+    GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
+    START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
 
   occupancy_grid = rrt.OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])

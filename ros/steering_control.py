@@ -25,7 +25,7 @@ from tf.transformations import euler_from_quaternion
 
 from gazebo_msgs.msg import ModelStates
 
-MAX_SPEED = 1.7
+MAX_SPEED = 1.5
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
@@ -109,6 +109,8 @@ def get_velocity(position, path_points):
   if np.linalg.norm(position - path_points[-1]) < .2:
     return v
 
+  path_points = path_points[::3]
+
   # Find the currently closest point in the path
   min_dist = np.linalg.norm(position - path_points[0])
   min_point = 0
@@ -123,13 +125,7 @@ def get_velocity(position, path_points):
     direction = path_points[-1]
     v = direction - position
   else:
-    #path_points = [(p1 + p2 + p3 + p4 + p5)/5 for p1,p2,p3,p4,p5 in zip(path_points,path_points[1:],path_points[2:],path_points[3:],path_points[4:])]
-    # old_path_points = path_points[::3]
-    # path_ponts = []
-    # for p in old_path_points:
-    #     np.append(path_points, [p,p,p])
-
-    lookahead = int(30 * max_velocity)
+    lookahead = int(10 * max_velocity)
     a_points = path_points[min_point : min_point+lookahead]
     b_points = path_points[min_point+1 : min_point+lookahead]
     c_points = path_points[min_point+2 : min_point+lookahead]
