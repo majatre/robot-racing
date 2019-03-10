@@ -52,8 +52,8 @@ def velocity_histogram(file_paths):
         data.append(velocities)
         labels.append(fp)
     plt.hist(data, 25)
-    plt.xlabel('Velocity Buckets')
-    plt.ylabel('Frequency')
+    plt.xlabel('Velocity Buckets [m/s]')
+    plt.ylabel('Frequency [100 ms]')
     plt.title('Histogram of velocity frequencies')
     plt.legend(labels)
     plt.show()
@@ -68,7 +68,7 @@ def velocity_over_time(file_paths):
         labels.append(fp)
         plt.plot(range(len(velocities)), velocities)
     plt.xlabel('Time [s]')
-    plt.ylabel('Velocity')
+    plt.ylabel('Velocity [m/s]')
     plt.title('Plot of velocities over time')
     plt.legend(labels)
     plt.show()
@@ -89,13 +89,16 @@ def acceleration_over_time(file_paths):
             accelerations.append(acc)
         times = [x * time_interv for x in range(len(accelerations))]
         labels.append(fp)
-        plt.plot(times, accelerations, linewidth=2.0)
+        plt.plot(times, accelerations)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Acceleration [m/s' + r'$^2$' + ']')
+    plt.title('Plot of velocities over time')
     plt.legend(labels)
     plt.show()
 
 
-velocity_histogram(['gazebo_race_trajectory.txt','map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])
+velocity_histogram(['gazebo_race_trajectory.txt','circuit_wavefront_gazebo_race_trajectory.txt'])
 velocity_over_time(
-    ['gazebo_race_trajectory.txt', 'map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])
+    ['gazebo_race_trajectory.txt', 'circuit_wavefront_gazebo_race_trajectory.txt'])
 acceleration_over_time(
-['gazebo_race_trajectory.txt', 'map_sharp_turn_wavefront_gazebo_race_trajectory.txt'])
+['gazebo_race_trajectory.txt', 'circuit_wavefront_gazebo_race_trajectory.txt'])
