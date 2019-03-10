@@ -10,9 +10,9 @@ import os
 
 directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
-def plot_race(occ_grid):
-  data_path = np.genfromtxt(directory + '/metrics/circuit_wavefront_gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt(directory + '/metrics/circuit_wavefront_gazebo_race_trajectory.txt', delimiter=',')
+def plot_race(occ_grid, file_path, file_trajectory):
+  data_path = np.genfromtxt(file_path, delimiter=',')
+  data_trajectory = np.genfromtxt(file_trajectory, delimiter=',')
 
   plt.figure()
   plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
@@ -22,9 +22,9 @@ def plot_race(occ_grid):
   plt.show()
 
 
-def plot_velocity(occ_grid):
-  data_path = np.genfromtxt(directory + '/metrics/gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt( directory + '/metrics/gazebo_race_trajectory.txt', delimiter=',')
+def plot_velocity(occ_grid, file_path, file_trajectory):
+  data_path = np.genfromtxt(file_path, delimiter=',')
+  data_trajectory = np.genfromtxt(file_trajectory, delimiter=',')
 
   fig, axs = plt.subplots()
   velocities = data_trajectory[:, 2]

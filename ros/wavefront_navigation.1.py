@@ -88,9 +88,11 @@ class GroundtruthPose(object):
 
 def run(args, occ_grid):
     rospy.init_node('wavefront_navigation')
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'w'):
+    file_path = directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1])
+    file_trajectory = directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1])
+    with open(file_path, 'w'):
         pass
-    with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'w'):
+    with open(file_trajectory, 'w'):
         pass
 
     # Update control every 100 ms.
@@ -129,7 +131,7 @@ def run(args, occ_grid):
         if goal_reached:
             finish_time = rospy.Time.now().to_sec()
             print('------- Time:', finish_time - start_time)
-            plot_trajectory.plot_race(occ_grid)
+            plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
             publisher.publish(stop_msg)
             rate_limiter.sleep()
             continue
@@ -151,7 +153,7 @@ def run(args, occ_grid):
         pose_history.append(
             [groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
         if len(pose_history) % 10:
-            with open(directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1]), 'a') as fp:
+            with open(file_trajectory, 'a') as fp:
                 fp.write('\n'.join(
                     ','.join(str(v) for v in p) for p in pose_history) + '\n')
                 pose_history = []
@@ -174,7 +176,7 @@ def run(args, occ_grid):
             print(current_path)
 
         # Log groundtruth positions in /tmp/gazebo_exercise.txt
-        with open(directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1]), 'a') as fp:
+        with open(file_path, 'a') as fp:
             fp.write('\n'.join(
                 ','.join(str(v) for v in p) for p in current_path) + '\n')
             pose_history = []

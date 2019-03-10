@@ -88,9 +88,11 @@ class GroundtruthPose(object):
 def run(args, occ_grid):
   sart_time = 0
   rospy.init_node('rrt_navigation')
-  with open(directory + '/../metrics/gazebo_race_path.txt', 'w'):
+  file_path = directory + '/../metrics/{}_rrt_gazebo_race_path.txt'.format(args.map.split('/')[1])
+  file_trajectory = directory + '/../metrics/{}_rrt_gazebo_race_trajectory.txt'.format(args.map.split('/')[1])
+  with open(file_path, 'w'):
    pass
-  with open(directory + '/../metrics/gazebo_race_trajectory.txt', 'w'):
+  with open(file_trajectory, 'w'):
    pass
 
   # Update control every 100 ms.
@@ -129,8 +131,8 @@ def run(args, occ_grid):
     if goal_reached:
       finish_time = rospy.Time.now().to_sec()
       print('------- Time:', finish_time - start_time)
-      plot_trajectory.plot_race(occ_grid)
-      plot_trajectory.plot_velocity(occ_grid)
+      plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
+      plot_trajectory.plot_velocity(occ_grid, file_path, file_trajectory)
       publisher.publish(stop_msg)
       rate_limiter.sleep()
       continue
@@ -152,10 +154,10 @@ def run(args, occ_grid):
     publisher.publish(vel_msg)
 
     #print(u, np.linalg.norm(groundtruth.velocity), groundtruth.velocity)
-    # Log groundtruth positions in /tmp/gazebo_exercise.txt
+    # Log groundtruth positions and velocities
     pose_history.append([groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
     if len(pose_history) % 10 == 0:
-      with open(directory + '/../metrics/gazebo_race_trajectory.txt', 'a') as fp:
+      with open(file_trajectory, 'a') as fp:
         fp.write('\n'.join(','.join(str(v) for v in p) for p in pose_history) + '\n')
         pose_history = []
 
@@ -168,8 +170,8 @@ def run(args, occ_grid):
 
     # Run RRT.
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
-    xy_path = np.genfromtxt(directory + '/paths/rrt_path_circuit3.txt' , delimiter=',')
-    current_path = [(xy[0],xy[1]) for xy in xy_path]
+    xy_path = np.genfromtxt(directory + '/paths/rrt_path_sharp.txt', delimiter=',')
+    current_path = [(xy[0], xy[1]) for xy in xy_path]
 
     for a,b in zip(current_path, current_path[1:]):
       print(np.linalg.norm(np.array(b) - np.array(a)))
@@ -180,8 +182,8 @@ def run(args, occ_grid):
     else:
       start_time = rospy.Time.now().to_sec()
 
-     # Log groundtruth positions in /tmp/gazebo_exercise.txt
-    with open(directory + '/../metrics/gazebo_race_path.txt', 'a') as fp:
+     # Log path
+    with open(file_path, 'a') as fp:
       fp.write('\n'.join(','.join(str(v) for v in p) for p in current_path) + '\n')
       pose_history = []
       
@@ -192,7 +194,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/sharp_turn', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.
@@ -218,9 +220,13 @@ if __name__ == '__main__':
     occupancy_grid[176, 160:180] = rrt.OCCUPIED
     GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
-  elif args.map == 'maps/map_sharp_turn':
+  elif args.map == 'maps/sharp_turn':
     GOAL_POSITION = np.array([0.7, -1], dtype=np.float32)  # Any orientation is good.
     START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+  elif args.map == 'maps/smooth_turn':
+    occupancy_grid[175, 160:180] = rrt.OCCUPIED
+    GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
+    START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
 
   occupancy_grid = rrt.OccupancyGrid(occupancy_grid, data['origin'], data['resolution'])
