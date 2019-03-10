@@ -279,7 +279,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='maps/circuit',
+                        default='maps/smooth_turn',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 

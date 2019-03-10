@@ -131,8 +131,8 @@ def run(args, occ_grid):
     if goal_reached:
       finish_time = rospy.Time.now().to_sec()
       print('------- Time:', finish_time - start_time)
-      plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
-      plot_trajectory.plot_velocity(occ_grid, file_path, file_trajectory)
+      #plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
+      #plot_trajectory.plot_velocity(occ_grid, file_path, file_trajectory)
       publisher.publish(stop_msg)
       rate_limiter.sleep()
       continue
@@ -170,7 +170,7 @@ def run(args, occ_grid):
 
     # Run RRT.
     #current_path = rrt.run_path_planning(groundtruth.pose, goal.position, occ_grid)
-    xy_path = np.genfromtxt(directory + '/paths/rrt_path_sharp.txt', delimiter=',')
+    xy_path = np.genfromtxt(directory + '/paths/rrt_path_circuit.txt', delimiter=',')
     current_path = [(xy[0], xy[1]) for xy in xy_path]
 
     for a,b in zip(current_path, current_path[1:]):
@@ -194,7 +194,7 @@ def run(args, occ_grid):
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Uses RRT to reach the goal.')
-  parser.add_argument('--map', action='store', default='maps/sharp_turn', help='Which map to use.')
+  parser.add_argument('--map', action='store', default='maps/circuit', help='Which map to use.')
   args, unknown = parser.parse_known_args()
 
   # Load map.

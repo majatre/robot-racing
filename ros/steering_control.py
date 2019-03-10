@@ -25,7 +25,7 @@ from tf.transformations import euler_from_quaternion
 
 from gazebo_msgs.msg import ModelStates
 
-MAX_SPEED = 1.5
+MAX_SPEED = 1.7
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
@@ -34,11 +34,11 @@ Y = 1
 YAW = 2
 
 prev_error = 0
-tau_p = 8
-tau_d = 160 # 20
+tau_p = 12
+tau_d = 260 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
-k_v = 1 #speed proportional gain
+k_v = 1.5 #speed proportional gain
 
 dt = 0.1
 
@@ -55,6 +55,8 @@ def PID(pose, path, velocity, current_speed):
   else:
     u = target_u
   w = (tau_p*error + tau_d*error_change) * current_speed
+
+  #print('U:', u, velocity)
   return u, w
 
 
@@ -73,7 +75,9 @@ def calculate_error(pose, path_points):
       min_dist = dist
       min_point = i
 
-  lookahead = int(MAX_SPEED * 3) 
+  lookahead = int(MAX_SPEED * 3)
+  if min_point > len(path_points)/2:
+    lookahead = int(MAX_SPEED * 4)
   if len(path_points) <= min_point + lookahead:
     return 0, 0
 
@@ -109,7 +113,7 @@ def get_velocity(position, path_points):
   if np.linalg.norm(position - path_points[-1]) < .2:
     return v
 
-  path_points = path_points[::3]
+  #path_points = [(p1+p2)/2 for p1,p2 in zip(path_points, path_points[1:])]
 
   # Find the currently closest point in the path
   min_dist = np.linalg.norm(position - path_points[0])
@@ -123,9 +127,9 @@ def get_velocity(position, path_points):
   # Move in the direction of the next point
   if len(path_points) <= min_point + 3:
     direction = path_points[-1]
-    v = direction - position
+    v = max_velocity * (direction - position)
   else:
-    lookahead = int(10 * max_velocity)
+    lookahead = int(30 * max_velocity)
     a_points = path_points[min_point : min_point+lookahead]
     b_points = path_points[min_point+1 : min_point+lookahead]
     c_points = path_points[min_point+2 : min_point+lookahead]
