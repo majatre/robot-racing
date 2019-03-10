@@ -22,9 +22,9 @@ def plot_race(occ_grid, file_path, file_trajectory):
   plt.show()
 
 
-def plot_velocity(occ_grid):
-  data_path = np.genfromtxt(directory + '/metrics/gazebo_race_path.txt', delimiter=',')
-  data_trajectory = np.genfromtxt( directory + '/metrics/gazebo_race_trajectory.txt', delimiter=',')
+def plot_velocity(occ_grid, file_path, file_trajectory):
+  data_path = np.genfromtxt(file_path, delimiter=',')
+  data_trajectory = np.genfromtxt(file_trajectory, delimiter=',')
 
   fig, axs = plt.subplots()
   velocities = data_trajectory[:, 2]
