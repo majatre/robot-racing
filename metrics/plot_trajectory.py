@@ -8,38 +8,6 @@ import matplotlib.pylab as plt
 from matplotlib.collections import LineCollection
 
 TIME_INTERVAL = 0.1
-# def plot_race(occ_grid):
-#   data_path = np.genfromtxt('/tmp/gazebo_race_path.txt', delimiter=',')
-#   data_trajectory = np.genfromtxt('/tmp/gazebo_race_trajectory.txt', delimiter=',')
-
-#   plt.figure()
-#   plt.plot(data_path[:, 0], data_path[:, 1], 'b', label='path')
-#   plt.plot(data_trajectory[:, 0], data_trajectory[:, 1], 'g', label='true')
-
-#   occ_grid.draw()
-#   plt.show()
-
-
-# def plot_velocity(occ_grid):
-#   data_path = np.genfromtxt('/tmp/gazebo_race_path.txt', delimiter=',')
-#   data_trajectory = np.genfromtxt('/tmp/gazebo_race_trajectory.txt', delimiter=',')
-
-#   fig, axs = plt.subplots()
-#   velocities = data_trajectory[:, 2]
-#   # Create a continuous norm to map from data points to colors
-#   norm = plt.Normalize(velocities.min(), velocities.max())
-#   points = np.array([data_trajectory[:, 0], data_trajectory[:, 1]]).T.reshape(-1, 1, 2)
-#   segments = np.concatenate([points[:-1], points[1:]], axis=1)
-#   lc = LineCollection(segments, cmap='Greens', norm=norm)
-#   # Set the values used for colormapping
-#   lc.set_array(velocities)
-#   lc.set_linewidth(2)
-#   line = axs.add_collection(lc)
-#   plt.colorbar(line, ax=axs)
-
-#   occ_grid.draw()
-
-#   plt.show()
 
 
 def velocity_histogram(file_paths):
@@ -97,8 +65,40 @@ def acceleration_over_time(file_paths):
     plt.show()
 
 
-velocity_histogram(['gazebo_race_trajectory.txt','circuit_wavefront_gazebo_race_trajectory.txt'])
-velocity_over_time(
-    ['gazebo_race_trajectory.txt', 'circuit_wavefront_gazebo_race_trajectory.txt'])
-acceleration_over_time(
-['gazebo_race_trajectory.txt', 'circuit_wavefront_gazebo_race_trajectory.txt'])
+MAX_SPEEDS = [1.1, 1.3, 1.5, 1.7]
+RESULTS_SHARP = {"wavefront_sharp_turn": [7.47, 7.1, 6.56, 6.43], "rrt_sharp_turn": [7.51, 6.94, 6.27, 6.23]}
+RESULTS_SMOOTH = {"wavefront_smooth_turn": [11.22, 10.1, 9.44, 9.23], "rrt_smooth_turn": [11.2, 10.13, 9.45, 9.22]}
+RESULTS_CIRCUIT = {"wavefront_circuit": [16.31, 15.4, 14.42, 13.93], "rrt_circuit": [16.89, 15.43, 13.87, 12.97]}
+
+
+def max_speed_performance(max_speeds, results):
+    plt.style.use('ggplot')
+    labels = []
+    for k, v in results.items():
+        keywords = k.split("_")
+        title = ""
+        for kw in keywords[1:]:
+            title += kw + " "
+        plt.plot(max_speeds, v)
+        labels.append(keywords[0])
+    plt.xlabel('Maximum speed [m/s]')
+    plt.ylabel('Time to finish the track [s]')
+    plt.title('Time to finish the ' + title + 'track')
+    plt.legend(labels)
+    plt.show()
+
+
+
+max_speed_performance(MAX_SPEEDS, RESULTS_SHARP)
+max_speed_performance(MAX_SPEEDS, RESULTS_SMOOTH)
+max_speed_performance(MAX_SPEEDS, RESULTS_CIRCUIT)
+
+
+# velocity_histogram(['gazebo_race_trajectory.txt',
+#                     'circuit_wavefront_gazebo_race_trajectory.txt'])
+# velocity_over_time(
+#     ['gazebo_race_trajectory.txt',
+#      'circuit_wavefront_gazebo_race_trajectory.txt'])
+# acceleration_over_time(
+#     ['gazebo_race_trajectory.txt',
+#      'circuit_wavefront_gazebo_race_trajectory.txt'])
