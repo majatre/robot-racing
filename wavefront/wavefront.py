@@ -90,7 +90,7 @@ def compute_path(occupancy_grid_values, start_index, goal_index):
         current_node = min_neigh
         path.append(current_node)
 
-    return path
+    return path[0::5]
 
 
 def run_path_planning(occ_grid, start_pose, goal_pose):
@@ -98,39 +98,16 @@ def run_path_planning(occ_grid, start_pose, goal_pose):
                         occ_grid.get_index(goal_pose))
     path = [occ_grid.get_position(x, y) for x, y in path]
 
-    return path
+    p = []
 
-
-def get_area(a, b, c):
-    return 1 / 2 * abs(
-        (b[X] - a[X]) * (c[Y] - a[Y]) - (b[Y] - a[Y]) * (c[X] - a[X]))
-
-
-def get_curvature(a, b, c):
-    A = get_area(a, b, c)
-    l1 = np.linalg.norm(b - a)
-    l2 = np.linalg.norm(c - a)
-    l3 = np.linalg.norm(c - b)
-    return 4 * A / (l1 * l2 * l3)
-
-
-def plot_path_curvature(path):
-    l = len(path)
-    print(l)
-    curvatures = []
-    line_length = []
-
-    fig, ax = plt.subplots()
-    for p1, p2, p3 in zip(path[:-2], path[1:-1], path[2:]):
-        curvatures.append(get_curvature(p1, p2, p3))
-        if len(line_length) == 0:
-            line_length.append(np.linalg.norm(p2 - p1) + np.linalg.norm(p3 - p2))
-        else:
-            ll = line_length[-1]
-            line_length.append(ll + np.linalg.norm(p3 - p2))
-    print(line_length)
-    plt.plot(line_length, curvatures)
-    plt.show()
+    for [x1, y1], [x2, y2] in zip(path[:-1], path[1:]):
+        p.append([x1, y1])
+        p.append([(x2 + 4 * x1) / 5, (y2 + 4 * y1) / 5])
+        p.append([(2 * x2 + 3 * x1) / 5, (2 * y2 + 3 * y1) / 5])
+        p.append([(3 * x2 + 2 * x1) / 5, (3 * y2 + 2 * y1) / 5])
+        p.append([(x1 + 4 * x2) / 5, (y1 + 4 * y2) / 5])
+    p.append(path[-1])
+    return p
 
 
 # Defines an occupancy grid.
@@ -142,7 +119,7 @@ class OccupancyGrid(object):
         inflated_grid = np.zeros_like(values)
         inflated_grid[values == OCCUPIED] = 1.
         # change to 6* when using square map.
-        w = 10 * int(ROBOT_RADIUS / resolution) + 1
+        w = 6 * int(ROBOT_RADIUS / resolution) + 1
         inflated_grid = scipy.signal.convolve2d(inflated_grid, np.ones((w, w)),
                                                 mode='same')
         self._values[inflated_grid > 0.] = OCCUPIED
