@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='maps/circuit',
+                        default='maps/sharp_turn',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 
@@ -208,21 +208,24 @@ if __name__ == '__main__':
     occupancy_grid = occupancy_grid[:, ::-1]
 
     # Invisible wall
-    if args.map == 'maps/circuit':
-      occupancy_grid[170, 144:170] = wavefront.OCCUPIED
-      GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)  # Any orientation is good.
-      START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
-    if args.map == 'maps/square':
-      occupancy_grid[176, 160:180] = wavefront.OCCUPIED
-      GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
-      START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
-    elif args.map == 'maps/sharp_turn':
-      GOAL_POSITION = np.array([0.7, -1], dtype=np.float32)  # Any orientation is good.
-      START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
-    elif args.map == 'maps/smooth_turn':
-      occupancy_grid[175, 160:200] = wavefront.OCCUPIED
-      GOAL_POSITION = np.array([-1., -1.5], dtype=np.float32)  # Any orientation is good.
-      START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+    if 'circuit' in args.map:
+        occupancy_grid[170, 144:170] = wavefront.OCCUPIED
+        GOAL_POSITION = np.array([-1., -2.3],
+                             dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
+    elif 'square' in args.map:
+        occupancy_grid[177, 160:180] = wavefront.OCCUPIED
+        GOAL_POSITION = np.array([-1., -1.5],
+                                 dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
+    elif 'sharp_turn' in args.map:
+        GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
+    elif 'smooth' in args.map:
+        occupancy_grid[177, 160:180] = wavefront.OCCUPIED
+        GOAL_POSITION = np.array([-1., -1.5],
+                                 dtype=np.float32)  # Any orientation is good.
+        START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
 
     occupancy_grid = wavefront.OccupancyGrid(occupancy_grid, data['origin'],
