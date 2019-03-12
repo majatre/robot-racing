@@ -131,7 +131,7 @@ def run(args, occ_grid):
         if goal_reached:
             finish_time = rospy.Time.now().to_sec()
             print('------- Time:', finish_time - start_time)
-            plot_trajectory.plot_race(occ_grid, file_path, file_trajectory)
+            plot_trajectory.plot_velocity(occ_grid, file_path, file_trajectory)
             publisher.publish(stop_msg)
             rate_limiter.sleep()
             continue

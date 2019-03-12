@@ -107,7 +107,7 @@ def calculate_cost(parent, position, occupancy_grid):
     angle_diff = abs(np.arctan2(np.sin(t2-t1), np.cos(t2-t1)))
     
     cost = parent.cost + d
-    cost += 0.1 * (3*angle_diff)**2 / d
+    cost += 0.2 * (3*angle_diff)**2 / d
 
     if check_collisions(parent, position, occupancy_grid):
         return float("inf")
@@ -189,7 +189,7 @@ class OccupancyGrid(object):
         # Inflate obstacles (using a convolution).
         inflated_grid = np.zeros_like(values)
         inflated_grid[values == OCCUPIED] = 1.
-        w = 10 * int(ROBOT_RADIUS / resolution) + 1
+        w = 6 * int(ROBOT_RADIUS / resolution) + 1
         inflated_grid = scipy.signal.convolve2d(inflated_grid, np.ones((w, w)), mode='same')
         self._values[inflated_grid > 0.] = OCCUPIED
         self._origin = np.array(origin[:2], dtype=np.float32)

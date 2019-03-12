@@ -25,7 +25,7 @@ from tf.transformations import euler_from_quaternion
 
 from gazebo_msgs.msg import ModelStates
 
-MAX_SPEED = 1.7
+MAX_SPEED = 1.5
 EPSILON = .1
 GOAL_POSITION = np.array([-1., -2.5], dtype=np.float32)
 
@@ -34,11 +34,11 @@ Y = 1
 YAW = 2
 
 prev_error = 0
-tau_p = 12
-tau_d = 260 # 20
+tau_p = 10 #12 #12
+tau_d = 160 #260 #260 # 20
 tau_i = 0 #0.01
 k = 1  # control gain
-k_v = 1.5 #speed proportional gain
+k_v = 1.3 #speed proportional gain
 
 dt = 0.1
 
@@ -75,9 +75,9 @@ def calculate_error(pose, path_points):
       min_dist = dist
       min_point = i
 
-  lookahead = int(MAX_SPEED * 3)
-  if min_point > len(path_points)/2:
-    lookahead = int(MAX_SPEED * 4)
+  lookahead = int(MAX_SPEED * 3.5)
+  if min_point > 2*len(path_points)/3:
+     lookahead = int(MAX_SPEED * 4)
   if len(path_points) <= min_point + lookahead:
     return 0, 0
 
@@ -140,12 +140,13 @@ def get_velocity(position, path_points):
       sum(curvatures[:int(lookahead/4)]) / len(curvatures[:int(lookahead/4)])]
       ) / 3
 
-    print(curvature)
+    curvature *= 1.1
+    #print(curvature)
 
     direction = path_points[min_point+1] #sum(path_points[min_point+1:min_point+4])/len(path_points[min_point+1:min_point+4])
     factor = max_velocity
    
-    if curvature > 0.3:
+    if curvature > 0.5:
       factor = np.sqrt(max_acc / curvature)
 
     v = factor * (direction - position) / np.linalg.norm(direction - position)
