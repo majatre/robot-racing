@@ -76,8 +76,6 @@ class GroundtruthPose(object):
         self._velocity[1] = msg.twist[idx].linear.y
         self._velocity[2] = msg.twist[idx].linear.z
 
-    # print(msg.twist[idx])
-
     @property
     def ready(self):
         return not np.isnan(self._pose[0])
@@ -200,7 +198,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
-                        default='maps/sharp_turn',
+                        default='maps/circuit',
                         help='Which map to use.')
     args, unknown = parser.parse_known_args()
 
