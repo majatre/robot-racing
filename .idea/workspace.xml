@@ -2,21 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="74351fec-0f6a-4bda-8ac7-bfb3a788e775" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/circuit_wavefront_gazebo_race_path.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/circuit_wavefront_gazebo_race_path.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/circuit_wavefront_gazebo_race_trajectory.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/circuit_wavefront_gazebo_race_trajectory.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/gazebo_race_path.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/gazebo_race_path.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/gazebo_race_trajectory.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/gazebo_race_trajectory.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/plot_curvatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/plot_curvatures.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/plot_trajectory.py" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/plot_trajectory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_path.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_path.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_trajectory.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_trajectory.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/smooth_turn_wavefront_gazebo_race_path.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/smooth_turn_wavefront_gazebo_race_path.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/metrics/smooth_turn_wavefront_gazebo_race_trajectory.txt" beforeDir="false" afterPath="$PROJECT_DIR$/metrics/smooth_turn_wavefront_gazebo_race_trajectory.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ros/rrt_navigation_racing.py" beforeDir="false" afterPath="$PROJECT_DIR$/ros/rrt_navigation_racing.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ros/steering_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/ros/steering_control.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ros/wavefront_navigation.1.py" beforeDir="false" afterPath="$PROJECT_DIR$/ros/wavefront_navigation.1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ros/wavefront_navigation.py" beforeDir="false" afterPath="$PROJECT_DIR$/ros/wavefront_navigation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rrt/rrt_star_lines_opt.py" beforeDir="false" afterPath="$PROJECT_DIR$/rrt/rrt_star_lines_opt.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -38,8 +25,20 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ros/steering_control.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="682">
-              <caret line="61" lean-forward="true" selection-start-line="61" selection-end-line="61" />
+            <state relative-caret-position="690">
+              <caret line="64" column="15" lean-forward="true" selection-start-line="64" selection-start-column="15" selection-end-line="64" selection-end-column="15" />
+              <folding>
+                <element signature="e#0#38#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/rrt/rrt_star_lines_opt.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="420">
+              <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
               <folding>
                 <element signature="e#0#38#0" expanded="true" />
               </folding>
@@ -52,7 +51,7 @@
           <provider selected="true" editor-type-id="text-editor" />
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_path.txt">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="15">
@@ -108,18 +107,6 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/metrics/plot_curvatures.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="592">
-              <caret line="45" lean-forward="true" selection-start-line="45" selection-end-line="45" />
-              <folding>
-                <element signature="e#0#38#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
     </leaf>
   </component>
   <component name="FindInProjectRecents">
@@ -149,6 +136,7 @@
         <option value="$PROJECT_DIR$/wavefront/wavefront.py" />
         <option value="$PROJECT_DIR$/ros/wavefront_navigation.1.py" />
         <option value="$PROJECT_DIR$/ros/steering_control.py" />
+        <option value="$PROJECT_DIR$/rrt/rrt_star_lines_opt.py" />
       </list>
     </option>
   </component>
@@ -252,15 +240,6 @@
     <entry file="file://$PROJECT_DIR$/rrt/bezier_path.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/rrt/rrt_star_lines_opt.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <folding>
-            <element signature="e#0#38#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/rrt/rrt_star_lines.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7567">
@@ -342,16 +321,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ros/steering_control.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="682">
-          <caret line="61" lean-forward="true" selection-start-line="61" selection-end-line="61" />
-          <folding>
-            <element signature="e#0#38#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/metrics/sharp_turn_wavefront_gazebo_race_trajectory.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -359,6 +328,26 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="15">
           <caret line="1" lean-forward="true" selection-start-line="1" selection-end-line="1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ros/steering_control.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="690">
+          <caret line="64" column="15" lean-forward="true" selection-start-line="64" selection-start-column="15" selection-end-line="64" selection-end-column="15" />
+          <folding>
+            <element signature="e#0#38#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rrt/rrt_star_lines_opt.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="115" lean-forward="true" selection-start-line="115" selection-end-line="115" />
+          <folding>
+            <element signature="e#0#38#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

@@ -40,7 +40,7 @@ def plot_path_curvature(path):
 
     curvatures2 = []
     for i in range(len(curvatures)):
-        curvatures2.append(sum(curvatures[i:i+21])/ len(curvatures[i:i+21]))
+        curvatures2.append(sum(curvatures[i:i+26])/ len(curvatures[i:i+26]))
 
     #line_length = [(c1+c2)/2 for c1, c2 in zip(line_length, line_length[1:])]
 
@@ -49,13 +49,15 @@ def plot_path_curvature(path):
 
 def plot_curvatures(file_paths):
   #data_path = np.genfromtxt(file_path, delimiter=',')
+  plt.style.use('ggplot')
   for fp in file_paths:
     data_path = np.genfromtxt(fp, delimiter=',')
     path = [np.array(x[:2], dtype=np.float32) for x in data_path]
     line_length, curvatures = plot_path_curvature(path)
-    if 'rrt' in fp:
-        curvatures = [c/1.7 for c in curvatures]
-    plt.plot(line_length, curvatures)
+    plt.plot(line_length, curvatures, color = "r" if "rrt" in fp else "b")
+
+  plt.ylabel('Curvature [1/m]')
+  plt.xlabel('Distance from the start of the track [m]')
   plt.show()
 
 plot_curvatures(['sharp_turn_rrt_gazebo_race_path.txt', 'sharp_turn_wavefront_gazebo_race_path.txt'])
