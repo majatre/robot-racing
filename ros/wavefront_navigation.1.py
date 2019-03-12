@@ -26,10 +26,12 @@ from tf.transformations import euler_from_quaternion
 from gazebo_msgs.msg import ModelStates
 
 # Import the potential_field.py code rather than copy-pasting.
-directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../wavefront')
+directory = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         '../wavefront')
 sys.path.insert(0, directory)
 
-directory_rrt = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../rrt')
+directory_rrt = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             '../rrt')
 sys.path.insert(0, directory_rrt)
 try:
     import wavefront as wavefront
@@ -48,48 +50,53 @@ X = 0
 Y = 1
 YAW = 2
 
+
 class GroundtruthPose(object):
-  def __init__(self, name='turtlebot3_burger'):
-    rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
-    self._pose = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
-    self._velocity = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
-    self._name = name
+    def __init__(self, name='turtlebot3_burger'):
+        rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
+        self._pose = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
+        self._velocity = np.array([np.nan, np.nan, np.nan], dtype=np.float32)
+        self._name = name
 
-  def callback(self, msg):
-    idx = [i for i, n in enumerate(msg.name) if n == self._name]
-    if not idx:
-      raise ValueError('Specified name "{}" does not exist.'.format(self._name))
-    idx = idx[0]
-    self._pose[X] = msg.pose[idx].position.x
-    self._pose[Y] = msg.pose[idx].position.y
-    _, _, yaw = euler_from_quaternion([
-        msg.pose[idx].orientation.x,
-        msg.pose[idx].orientation.y,
-        msg.pose[idx].orientation.z,
-        msg.pose[idx].orientation.w])
-    self._pose[YAW] = yaw
-    self._velocity[0] = msg.twist[idx].linear.x
-    self._velocity[1] = msg.twist[idx].linear.y
-    self._velocity[2] = msg.twist[idx].linear.z
-   # print(msg.twist[idx])
+    def callback(self, msg):
+        idx = [i for i, n in enumerate(msg.name) if n == self._name]
+        if not idx:
+            raise ValueError(
+                'Specified name "{}" does not exist.'.format(self._name))
+        idx = idx[0]
+        self._pose[X] = msg.pose[idx].position.x
+        self._pose[Y] = msg.pose[idx].position.y
+        _, _, yaw = euler_from_quaternion([
+            msg.pose[idx].orientation.x,
+            msg.pose[idx].orientation.y,
+            msg.pose[idx].orientation.z,
+            msg.pose[idx].orientation.w])
+        self._pose[YAW] = yaw
+        self._velocity[0] = msg.twist[idx].linear.x
+        self._velocity[1] = msg.twist[idx].linear.y
+        self._velocity[2] = msg.twist[idx].linear.z
 
-  @property
-  def ready(self):
-    return not np.isnan(self._pose[0])
+    # print(msg.twist[idx])
 
-  @property
-  def pose(self):
-    return self._pose
+    @property
+    def ready(self):
+        return not np.isnan(self._pose[0])
 
-  @property
-  def velocity(self):
-    return self._velocity
+    @property
+    def pose(self):
+        return self._pose
+
+    @property
+    def velocity(self):
+        return self._velocity
 
 
 def run(args, occ_grid):
     rospy.init_node('wavefront_navigation')
-    file_path = directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(args.map.split('/')[1])
-    file_trajectory = directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(args.map.split('/')[1])
+    file_path = directory + '/../metrics/{}_wavefront_gazebo_race_path.txt'.format(
+        args.map.split('/')[1])
+    file_trajectory = directory + '/../metrics/{}_wavefront_gazebo_race_trajectory.txt'.format(
+        args.map.split('/')[1])
     with open(file_path, 'w'):
         pass
     with open(file_trajectory, 'w'):
@@ -142,8 +149,9 @@ def run(args, occ_grid):
             groundtruth.pose[Y] + EPSILON * np.sin(groundtruth.pose[YAW])],
             dtype=np.float32)
         v = get_velocity(position, np.array(current_path, dtype=np.float32))
-        u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32), v, np.linalg.norm(groundtruth.velocity))
-        #u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
+        u, w = PID(groundtruth.pose, np.array(current_path, dtype=np.float32),
+                   v, np.linalg.norm(groundtruth.velocity))
+        # u, w = feedback_linearized(groundtruth.pose, v, epsilon=EPSILON)
         vel_msg = Twist()
         vel_msg.linear.x = u
         vel_msg.angular.z = w
@@ -151,7 +159,8 @@ def run(args, occ_grid):
 
         # Log groundtruth positions in /tmp/gazebo_exercise.txt
         pose_history.append(
-            [groundtruth.pose[X], groundtruth.pose[Y], np.linalg.norm(groundtruth.velocity)])
+            [groundtruth.pose[X], groundtruth.pose[Y],
+             np.linalg.norm(groundtruth.velocity)])
         if len(pose_history) % 10:
             with open(file_trajectory, 'a') as fp:
                 fp.write('\n'.join(
@@ -165,9 +174,10 @@ def run(args, occ_grid):
             continue
         previous_time = current_time
 
-
         # Run Wavefront.
-        current_path = wavefront.run_path_planning(occ_grid, groundtruth.pose[:2], GOAL_POSITION)
+        current_path = wavefront.run_path_planning(occ_grid,
+                                                   groundtruth.pose[:2],
+                                                   GOAL_POSITION)
 
         if len(current_path) == 0:
             print('Unable to reach goal position:', GOAL_POSITION)
@@ -187,7 +197,8 @@ def run(args, occ_grid):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Uses the Wavefront algorithm to reach the goal.')
+    parser = argparse.ArgumentParser(
+        description='Uses the Wavefront algorithm to reach the goal.')
     parser.add_argument('--map', action='store',
                         default='maps/smooth_turn',
                         help='Which map to use.')
@@ -196,7 +207,9 @@ if __name__ == '__main__':
     # Load map.
     with open(directory_rrt + '/' + args.map + '.yaml') as fp:
         data = yaml.load(fp)
-    img = wavefront.read_pgm(os.path.join(os.path.dirname(directory_rrt + '/' + args.map), data['image']))
+    img = wavefront.read_pgm(
+        os.path.join(os.path.dirname(directory_rrt + '/' + args.map),
+                     data['image']))
     occupancy_grid = np.empty_like(img, dtype=np.int8)
     occupancy_grid[:] = wavefront.UNKNOWN
     occupancy_grid[img < .1] = wavefront.OCCUPIED
@@ -211,7 +224,7 @@ if __name__ == '__main__':
     if 'circuit' in args.map:
         occupancy_grid[170, 144:170] = wavefront.OCCUPIED
         GOAL_POSITION = np.array([-1., -2.3],
-                             dtype=np.float32)  # Any orientation is good.
+                                 dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-2.5, -2.5, np.pi / 2], dtype=np.float32)
     elif 'square' in args.map:
         occupancy_grid[177, 160:180] = wavefront.OCCUPIED
@@ -219,7 +232,8 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
     elif 'sharp_turn' in args.map:
-        GOAL_POSITION = np.array([0.75, -1], dtype=np.float32)  # Any orientation is good.
+        GOAL_POSITION = np.array([0.75, -1],
+                                 dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-0.3, -1, np.pi / 2], dtype=np.float32)
     elif 'smooth' in args.map:
         occupancy_grid[177, 160:180] = wavefront.OCCUPIED
@@ -227,9 +241,8 @@ if __name__ == '__main__':
                                  dtype=np.float32)  # Any orientation is good.
         START_POSE = np.array([-1.5, -1.5, np.pi / 2], dtype=np.float32)
 
-
     occupancy_grid = wavefront.OccupancyGrid(occupancy_grid, data['origin'],
-                                       data['resolution'])
+                                             data['resolution'])
 
     try:
         run(args, occupancy_grid)
