@@ -25,7 +25,8 @@ export GAZEBO_MODEL_PATH=~/catkin_ws/src/exercises/robot-racing/models/
 ## Steering control
 Planned Wavefront path in grey, actual path in blue (colormap indicates velocity)
 ![Path](./img/blue.png)
-Planned Wavefront path in grey, actual path in blue (colormap indicates velocity)
+
+Planned RRT* path in grey, actual path in blue (colormap indicates velocity)
 ![Path](./img/red.png)
 
 ## Results
