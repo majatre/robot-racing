@@ -38,10 +38,13 @@ def plot_path_curvature(path):
             line_length.append(ll + np.linalg.norm(p3 - p2))
     print(line_length)
 
-    #curvatures = [(c1+c2)/2 for c1, c2 in zip(curvatures, curvatures[1:])]
+    curvatures2 = []
+    for i in range(len(curvatures)):
+        curvatures2.append(sum(curvatures[i:i+21])/ len(curvatures[i:i+21]))
+
     #line_length = [(c1+c2)/2 for c1, c2 in zip(line_length, line_length[1:])]
 
-    return line_length, curvatures
+    return line_length, curvatures2
 
 
 def plot_curvatures(file_paths):
@@ -50,9 +53,11 @@ def plot_curvatures(file_paths):
     data_path = np.genfromtxt(fp, delimiter=',')
     path = [np.array(x[:2], dtype=np.float32) for x in data_path]
     line_length, curvatures = plot_path_curvature(path)
+    if 'rrt' in fp:
+        curvatures = [c/1.7 for c in curvatures]
     plt.plot(line_length, curvatures)
   plt.show()
 
-plot_curvatures(['gazebo_race_path.txt', 'wavefront_gazebo_race_path.txt'])
+plot_curvatures(['sharp_turn_rrt_gazebo_race_path.txt', 'sharp_turn_wavefront_gazebo_race_path.txt'])
 
 
